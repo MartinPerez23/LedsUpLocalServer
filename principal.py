@@ -1,15 +1,19 @@
+import asyncio
 import json
-import socket
-import socketserver
 import threading
 import time
+import websockets
+from Lib import os
 
 import conexion_artnet
 import globales
 
-TIMEOUT = 10
-HOST = 'localhost'
-PORT = 8081
+TOKEN = os.environ.get('TOKEN')
+WS_URI = "wss://ledsupwebserver.onrender.com/ledsup/wsremoteandlocal/"
+WS_HEADERS = [
+    ("Origin", "https://ledsupwebserver.onrender.com"),
+    ("Authorization", f"Token {TOKEN}")
+]
 
 
 def detenerTheadsViejos():
@@ -18,134 +22,89 @@ def detenerTheadsViejos():
     globales.REPETICION = True
 
 
-# ----------------------------------------------------- SERVIDOR ----------------------------------------------------- #
+class ControladorLEDs:
+    def __init__(self):
+        self.artnet = conexion_artnet.ConexionArtnet()
 
+    def procesar_comando(self, dataJson):
+        print("Comando recibido:", dataJson)
+        self.artnet.dispositivosActivos.clear()
+        accion = dataJson['accion']
+        dispositivosActuales = dataJson['lista']
+        numeroDispositivos = int(len(dispositivosActuales) / 6)
 
-class RequestHandler(socketserver.BaseRequestHandler):
-    def handle(self):
-        try:
-            threadName = threading.currentThread().getName()
-            activeThreads = threading.activeCount() - 1
-            clientIP = self.client_address[0]
-            print('[%s] -- New connection from %s -- Active threads: %d' % (threadName, clientIP, activeThreads))
-            data = self.request.recv(1024).strip()
-            dataJson = json.loads(data.decode('utf8'))
-            self.request.sendall(data)
+        for repeticion in range(numeroDispositivos):
+            numero = repeticion * 7
+            ip = dispositivosActuales[numero]
+            universo = int(dispositivosActuales[numero + 1])
+            matrizX = int(dispositivosActuales[numero + 2])
+            matrizY = int(dispositivosActuales[numero + 3])
+            patch = dispositivosActuales[numero + 4]
+            orden = dispositivosActuales[numero + 5]
+            tipoLed = dispositivosActuales[numero + 6]
 
-            print("{} wrote:".format(self.client_address[0]))
-            print(dataJson)
-
-            # CREAR LISTA Y VERIFICAR SI EXISTE EL DISPOSITIVO
-
-            artnet = conexion_artnet.ConexionArtnet()
-            artnet.dispositivosActivos.clear()
-            accion = dataJson['accion']
-            dispositivosActuales = dataJson['lista']
-            numeroDispositivos = int(len(dispositivosActuales) / 6)
-
-            for repeticion in range(numeroDispositivos):
-                numero = repeticion * 7
-
-                ip = dispositivosActuales[numero]
-                universo = int(dispositivosActuales[numero + 1])
-                matrizX = int(dispositivosActuales[numero + 2])
-                matrizY = int(dispositivosActuales[numero + 3])
-                patch = dispositivosActuales[numero + 4]
-                orden = dispositivosActuales[numero + 5]
-                tipoLed = dispositivosActuales[numero + 6]
-
-                if orden == 'Arriba-Izquierda':
-                    orden = 0
-                elif orden == 'Arriba':
-                    orden = 1
-                elif orden == 'Arriba-Derecha':
-                    orden = 2
-                elif orden == 'Izquierda':
-                    orden = 3
-                elif orden == 'Centro':
-                    orden = 4
-                elif orden == 'Derecha':
-                    orden = 5
-                elif orden == 'Abajo-Izquierda':
-                    orden = 6
-                elif orden == 'Abajo':
-                    orden = 7
-                elif orden == 'Abajo-Derecha':
-                    orden = 8
-
-                artnet.buscarOAgregarDispositivo(ip, universo, patch, matrizX, matrizY, orden, tipoLed)
-
-            artnet.dispositivosActivos = sorted(artnet.dispositivosActivos, key=lambda dispositivo: dispositivo.orden)
-
-            artnet.printCantidadDispositivosActivos()
-            artnet.printDispositivosActivos()
-
-            if accion == 'probar':
-                detenerTheadsViejos()
-                artnet.probarDispositivo()
-
-            if accion == 'color':
-                detenerTheadsViejos()
-                artnet.color(dataJson)
-
-            if accion == 'scroll':
-                t1 = threading.Thread(target=artnet.scroll, args=(dataJson,), daemon=True)
-                detenerTheadsViejos()
-                t1.start()
-                t1.join()
-
-            if accion == 'scan':
-                t2 = threading.Thread(target=artnet.scan, args=(dataJson,), daemon=True)
-                detenerTheadsViejos()
-                t2.start()
-                t2.join()
-
-            if accion == 'estrellas':
-                t3 = threading.Thread(target=artnet.estrellas, args=(dataJson,), daemon=True)
-                detenerTheadsViejos()
-                t3.start()
-                t3.join()
-
-        except ValueError:
-            msg = "<html><body><h1>This is a test</h1><p>More content here</p></body></html>"
-
-            response_headers = {
-                'Content-Type': 'text/html; encoding=utf8',
-                'Content-Length': len(msg),
-                'Connection': 'close',
+            orden_map = {
+                'Arriba-Izquierda': 0, 'Arriba': 1, 'Arriba-Derecha': 2,
+                'Izquierda': 3, 'Centro': 4, 'Derecha': 5,
+                'Abajo-Izquierda': 6, 'Abajo': 7, 'Abajo-Derecha': 8
             }
+            orden = orden_map.get(orden, 4)
 
-            response_headers_raw = ''.join('%s: %s\r\n' % (k, v) for k, v in response_headers.items())
+            self.artnet.buscarOAgregarDispositivo(ip, universo, patch, matrizX, matrizY, orden, tipoLed)
 
-            response_proto = 'HTTP/1.1'
-            response_status = '200'
-            response_status_text = 'OK'  # this can be random
+        self.artnet.dispositivosActivos = sorted(
+            self.artnet.dispositivosActivos, key=lambda d: d.orden
+        )
 
-            # sending all this stuff
-            r = '%s %s %s\r\n' % (response_proto, response_status, response_status_text)
-            self.request.sendall(bytes(r + response_headers_raw + '\r\n' + msg, "utf-8"))
+        self.artnet.printCantidadDispositivosActivos()
+        self.artnet.printDispositivosActivos()
 
-            print('Datos sin JSON')
+        if accion == 'probar':
+            detenerTheadsViejos()
+            self.artnet.probarDispositivo()
 
-        except KeyboardInterrupt:
-            print('[%s] -- %s -- Timeout on data transmission ocurred after %d seconds.' % (
-                threadName, clientIP, TIMEOUT))
+        elif accion == 'color':
+            detenerTheadsViejos()
+            self.artnet.color(dataJson)
+
+        elif accion == 'scroll':
+            detenerTheadsViejos()
+            t = threading.Thread(target=self.artnet.scroll, args=(dataJson,), daemon=True)
+            t.start()
+            t.join()
+
+        elif accion == 'scan':
+            detenerTheadsViejos()
+            t = threading.Thread(target=self.artnet.scan, args=(dataJson,), daemon=True)
+            t.start()
+            t.join()
+
+        elif accion == 'estrellas':
+            detenerTheadsViejos()
+            t = threading.Thread(target=self.artnet.estrellas, args=(dataJson,), daemon=True)
+            t.start()
+            t.join()
 
 
-class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
-    def server_bind(self):
-        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.socket.bind(self.server_address)
+async def escuchar_websocket(controlador: ControladorLEDs):
+    try:
+        async with websockets.connect(WS_URI, extra_headers=WS_HEADERS) as websocket:
+            print("Conectado al servidor Django (WebSocket)")
+            while True:
+                mensaje = await websocket.recv()
+                data = json.loads(mensaje)
+                comando = data.get('data')
 
-    def finish_request(self, request, client_address):
-        request.settimeout(TIMEOUT)
-        socketserver.TCPServer.finish_request(self, request, client_address)
-        socketserver.TCPServer.close_request(self, request)
+                if comando:
+                    controlador.procesar_comando(comando)
+                    await websocket.send(json.dumps({"estado": "ok"}))
+                else:
+                    print("Formato inesperado:", data)
+
+    except Exception as e:
+        print("Error en WebSocket:", e)
 
 
-try:
-    print("Starting server TCP at IP %s and port %d..." % (HOST, PORT))
-    server = ThreadedTCPServer((HOST, PORT), RequestHandler)
-    server.serve_forever()
-except KeyboardInterrupt:
-    server.socket.close()
+if __name__ == "__main__":
+    controlador = ControladorLEDs()
+    asyncio.run(escuchar_websocket(controlador))

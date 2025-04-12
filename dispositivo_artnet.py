@@ -29,7 +29,7 @@ class DispositivoArtnet:
     def enviarDatos(self):
         ledsPatcheados = self.datosAEnviar.copy()
 
-        if self.patch != 'Sin patch':
+        if self.patch not in ['Sin patch','']:
             patch = [int(x) for x in self.patch.split(',')]
             for indice, posicion in enumerate(patch):
                 if self.tipoLed == 'RGB':
