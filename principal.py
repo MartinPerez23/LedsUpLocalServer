@@ -5,13 +5,15 @@ import time
 import websockets
 from Lib import os
 
+import ssl
 import conexion_artnet
 import globales
 
+ssl_context = ssl._create_unverified_context()
 TOKEN = os.environ.get('TOKEN')
-WS_URI = "wss://ledsupwebserver.onrender.com/ledsup/wsremoteandlocal/"
+WS_URI = "wss://localhost:8000/ledsup/wsremoteandlocal/"
 WS_HEADERS = [
-    ("Origin", "https://ledsupwebserver.onrender.com"),
+    ("Origin", "https://localhost:8000"),
     ("Authorization", f"Token {TOKEN}")
 ]
 
@@ -88,7 +90,7 @@ class ControladorLEDs:
 
 async def escuchar_websocket(controlador: ControladorLEDs):
     try:
-        async with websockets.connect(WS_URI, extra_headers=WS_HEADERS) as websocket:
+        async with websockets.connect(WS_URI, extra_headers=WS_HEADERS, ssl=ssl_context) as websocket:
             print("Conectado al servidor Django (WebSocket)")
             while True:
                 mensaje = await websocket.recv()
