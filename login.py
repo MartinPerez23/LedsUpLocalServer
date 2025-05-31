@@ -1,19 +1,40 @@
 import tkinter as tk
 import webbrowser
-from http.server import HTTPServer, BaseHTTPRequestHandler
+import secrets
+import string
+import random
+import hashlib
+import base64
+import threading
+import os
+from oauth_callback_server import run_server
 from tkinter import font as tkfont
 from PIL import Image, ImageTk, ImageSequence # Necesitas Pillow
-import os
+from dotenv import load_dotenv
+from oauth_token_server import OAuthTokenServer
 
 
-
+load_dotenv()
 # Simulamos credenciales válidas
 USUARIO_VALIDO = "juan"
 PASSWORD_VALIDO = "1234"
 
+
+def generar_code_verifier():
+    caracteres = string.ascii_letters + string.digits + "-._~"
+    return ''.join(secrets.choice(caracteres) for _ in range(random.randint(43, 128)))
+
+
+def calcular_code_challenge(code_verifier):
+    sha256_hash = hashlib.sha256(code_verifier.encode('ascii')).digest()
+    code_challenge = base64.urlsafe_b64encode(sha256_hash).rstrip(b'=').decode('ascii')
+    return code_challenge
+
+
 class ModernLogin(tk.Tk):
     def __init__(self):
         super().__init__()
+        self.code_verifier = None
         self.title("Server LEDS UP")
         self.geometry("350x320")
         self.configure(bg="#f5f8fa")
@@ -47,7 +68,7 @@ class ModernLogin(tk.Tk):
             width=24,
             height=2,
             cursor="hand2",
-            command=self.web_auth
+            command=self.run_with_wait_window
         )
         self.login_btn.pack(pady=(0, 24))
 
@@ -55,16 +76,28 @@ class ModernLogin(tk.Tk):
         self.login_btn.bind("<Enter>", lambda e: self.login_btn.config(bg="#198fd9"))
         self.login_btn.bind("<Leave>", lambda e: self.login_btn.config(bg="#1da1f2"))
 
-    def web_auth(self):
-        self.withdraw()  # Oculta la ventana principal
 
-        auth_url = os.environ.get("AUTH_URL")
+
+    def authentication(self):
+        code_verifier = generar_code_verifier()
+        code_challenge = calcular_code_challenge(code_verifier)
+        auth_url = os.environ.get('AUTH_URL')
+        client_id = os.environ.get('CLIENT_ID')
+        auth_url = auth_url.replace("X", client_id)
+        auth_url = auth_url.replace("XX", code_challenge)
         webbrowser.open(auth_url)
 
-        CallbackHandler.do_GET()
+        auth_code = run_server()
 
+        oauth_server = OAuthTokenServer(code_verifier)
+
+    def run_with_wait_window(self):
+        self.withdraw()
         ventana = VentanaEspera()
+        thread = threading.Thread(target=self.authentication)
+        thread.start()
         ventana.mainloop()
+
 
 class VentanaEspera(tk.Toplevel):
     def __init__(self, master=None):
@@ -104,11 +137,3 @@ class VentanaEspera(tk.Toplevel):
         self.master.destroy()  # Cierra el root principal también
 
 
-class CallbackHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        # Extrae el código de la URL
-        # Intercambia el código por el token
-        pass
-
-httpd = HTTPServer(('localhost', 12345), CallbackHandler)
-httpd.handle_request()
