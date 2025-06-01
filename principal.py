@@ -3,6 +3,7 @@ import json
 import threading
 import time
 import websockets
+import queue
 from Lib import os
 
 import ssl
@@ -16,6 +17,8 @@ WS_HEADERS = [
     ("Origin", "https://localhost:8000"),
     ("Authorization", f"Token {TOKEN}")
 ]
+
+comando_queue = queue.Queue()
 
 
 def detenerTheadsViejos():
@@ -73,22 +76,19 @@ class ControladorLEDs:
             detenerTheadsViejos()
             t = threading.Thread(target=self.artnet.scroll, args=(dataJson,), daemon=True)
             t.start()
-            t.join()
 
         elif accion == 'scan':
             detenerTheadsViejos()
             t = threading.Thread(target=self.artnet.scan, args=(dataJson,), daemon=True)
             t.start()
-            t.join()
 
         elif accion == 'estrellas':
             detenerTheadsViejos()
             t = threading.Thread(target=self.artnet.estrellas, args=(dataJson,), daemon=True)
             t.start()
-            t.join()
 
 
-async def escuchar_websocket(controlador: ControladorLEDs):
+async def escuchar_websocket():
     try:
         async with websockets.connect(WS_URI, extra_headers=WS_HEADERS, ssl=ssl_context) as websocket:
             print("Conectado al servidor Django (WebSocket)")
@@ -98,7 +98,7 @@ async def escuchar_websocket(controlador: ControladorLEDs):
                 comando = data.get('data')
 
                 if comando:
-                    controlador.procesar_comando(comando)
+                    comando_queue.put(comando)  # Enviamos el comando al otro thread
                     await websocket.send(json.dumps({"estado": "ok"}))
                 else:
                     print("Formato inesperado:", data)
@@ -107,6 +107,20 @@ async def escuchar_websocket(controlador: ControladorLEDs):
         print("Error en WebSocket:", e)
 
 
+def procesar_comandos_thread(controlador: ControladorLEDs):
+    while True:
+        comando = comando_queue.get()  # Espera bloqueante
+        if comando is None:
+            break  # Salida segura
+        controlador.procesar_comando(comando)
+
+
 if __name__ == "__main__":
     controlador = ControladorLEDs()
-    asyncio.run(escuchar_websocket(controlador))
+
+    # Thread que procesa los comandos
+    hilo_procesador = threading.Thread(target=procesar_comandos_thread, args=(controlador,), daemon=True)
+    hilo_procesador.start()
+
+    # Arranca el loop async del websocket
+    asyncio.run(escuchar_websocket())
