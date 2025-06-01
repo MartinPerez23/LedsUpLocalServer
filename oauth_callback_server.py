@@ -22,7 +22,7 @@ class OAuthCallbackHandler(http.server.BaseHTTPRequestHandler):
             self.end_headers()
 
 def run_server():
-    with socketserver.TCPServer(("localhost", PORT), OAuthCallbackHandler) as httpd:
-        print(f"Escuchando en http://localhost:{PORT}/callback ...")
-        httpd.handle_request()  # Solo espera una petición y después termina
+    with socketserver.TCPServer(("127.0.0.1", PORT), OAuthCallbackHandler) as httpd:
+        print(f"Escuchando en https://localhost:{PORT}/callback ...")
+        httpd.handle_request()
         return OAuthCallbackHandler.code

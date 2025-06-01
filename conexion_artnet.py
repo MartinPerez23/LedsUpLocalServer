@@ -5,6 +5,8 @@ import time
 import dispositivo_artnet
 import globales
 
+import random
+
 
 class ConexionArtnet:
     def __init__(self):
@@ -397,3 +399,4 @@ class ConexionArtnet:
             dispositivo.enviarDatos()
             time.sleep(3)
             dispositivo.conexionArtnet.blackout()
+

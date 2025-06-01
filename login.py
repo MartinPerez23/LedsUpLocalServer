@@ -20,14 +20,10 @@ USUARIO_VALIDO = "juan"
 PASSWORD_VALIDO = "1234"
 
 
-def generar_code_verifier():
-    caracteres = string.ascii_letters + string.digits + "-._~"
-    return ''.join(secrets.choice(caracteres) for _ in range(random.randint(43, 128)))
-
 
 def calcular_code_challenge(code_verifier):
-    sha256_hash = hashlib.sha256(code_verifier.encode('ascii')).digest()
-    code_challenge = base64.urlsafe_b64encode(sha256_hash).rstrip(b'=').decode('ascii')
+    code_challenge = hashlib.sha256(code_verifier.encode('utf-8')).digest()
+    code_challenge = base64.urlsafe_b64encode(code_challenge).decode('utf-8').replace('=', '')
     return code_challenge
 
 
@@ -79,7 +75,7 @@ class ModernLogin(tk.Tk):
 
 
     def authentication(self):
-        code_verifier = generar_code_verifier()
+        code_verifier = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(random.randint(43, 128)))
         code_challenge = calcular_code_challenge(code_verifier)
         auth_url = os.environ.get('AUTH_URL')
         client_id = os.environ.get('CLIENT_ID')
@@ -90,6 +86,7 @@ class ModernLogin(tk.Tk):
         auth_code = run_server()
 
         oauth_server = OAuthTokenServer(code_verifier)
+        oauth_server.do_post(auth_code)
 
     def run_with_wait_window(self):
         self.withdraw()

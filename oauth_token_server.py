@@ -1,30 +1,42 @@
-import requests
+import json
 import os
-from dotenv import load_dotenv
 
+import requests
+from dotenv import load_dotenv
 
 load_dotenv()
 
+
 class OAuthTokenServer:
     def __init__(self, code_verifier):
-        self.client_id = os.environ.get('CLIENT_ID')
-        self.token_url = os.environ.get('TOKEN_URL')
-        self.redirect_uri = os.environ.get('REDIRECT_URL')
         self.code_verifier = code_verifier
-        self.access_token = None
-        self.refresh_token = None
-        self.expiry = None
 
-
-    def do_post(self,code):
-        TOKEN_URL = "http://TU_SERVIDOR/o/token/"
-
+    def do_post(self, code):
+        headers = {
+            "Cache-Control": "no-cache",
+            "Content-Type": "application/x-www-form-urlencoded",
+        }
         data = {
             "grant_type": "authorization_code",
-            "code": "EL_AUTHORIZATION_CODE",
-            "redirect_uri": "http://localhost:34123/callback",
-            "client_id": "TU_CLIENT_ID",
-            "code_verifier": "EL_CODE_VERIFIER",  # solo si usás PKCE
+            "code": code,
+            "redirect_uri": os.environ.get('REDIRECT_URL'),
+            "client_id": os.environ.get('CLIENT_ID'),
+            "client_secret": os.environ.get('SECRET'),
+            "code_verifier": self.code_verifier,
         }
 
-        response = requests.post(TOKEN_URL, data=data)
+        print("======== DATOS QUE SE ENVIARÁN ========")
+        print("TOKEN_URL:", os.environ.get('TOKEN_URL'))
+        print("client_id:", data["client_id"])
+        print("client_secret:", data["client_secret"])
+        print("redirect_uri:", data["redirect_uri"])
+        print("grant_type:", data["grant_type"])
+        print("code:", data["code"])
+        print("code_verifier:", data["code_verifier"])
+        print("headers:", headers)
+        print("=======================================")
+
+        response = requests.post(os.environ.get('TOKEN_URL'), data=data, headers=headers, verify=False)
+        response.raise_for_status()
+
+        print(json.dumps(response.json(), indent=4))
