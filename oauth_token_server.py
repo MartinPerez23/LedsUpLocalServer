@@ -11,7 +11,7 @@ class OAuthTokenServer:
     def __init__(self, code_verifier):
         self.code_verifier = code_verifier
 
-    def do_post(self, code):
+    def get_token(self, code):
         headers = {
             "Cache-Control": "no-cache",
             "Content-Type": "application/x-www-form-urlencoded",
@@ -36,7 +36,13 @@ class OAuthTokenServer:
         print("headers:", headers)
         print("=======================================")
 
-        response = requests.post(os.environ.get('TOKEN_URL'), data=data, headers=headers, verify=False)
-        response.raise_for_status()
+        try:
+            response = requests.post(os.environ.get('TOKEN_URL'), data=data, headers=headers, verify=False)
+            response.raise_for_status()  # Lanza el error si el status code es 4xx/5xx
+        except requests.exceptions.HTTPError as e:
+            print("Status code:", response.status_code)
+            print("Respuesta del servidor:")
+            print(response.text)  # <-- Acá ves el JSON o mensaje de error
+            raise
 
-        print(json.dumps(response.json(), indent=4))
+        print(response.json())

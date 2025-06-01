@@ -21,10 +21,15 @@ PASSWORD_VALIDO = "1234"
 
 
 
-def calcular_code_challenge(code_verifier):
-    code_challenge = hashlib.sha256(code_verifier.encode('utf-8')).digest()
-    code_challenge = base64.urlsafe_b64encode(code_challenge).decode('utf-8').replace('=', '')
-    return code_challenge
+def generate_code_verifier(length=128):
+    allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~"
+    return ''.join(secrets.choice(allowed) for _ in range(length))
+
+def calculate_code_challenge(verifier):
+    digest = hashlib.sha256(verifier.encode('ascii')).digest()
+    challenge = base64.urlsafe_b64encode(digest).rstrip(b'=').decode('ascii')
+    return challenge
+
 
 
 class ModernLogin(tk.Tk):
@@ -75,18 +80,18 @@ class ModernLogin(tk.Tk):
 
 
     def authentication(self):
-        code_verifier = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(random.randint(43, 128)))
-        code_challenge = calcular_code_challenge(code_verifier)
+        code_verifier = generate_code_verifier(random.randint(43,128))
+        code_challenge = calculate_code_challenge(code_verifier)
         auth_url = os.environ.get('AUTH_URL')
         client_id = os.environ.get('CLIENT_ID')
-        auth_url = auth_url.replace("X", client_id)
-        auth_url = auth_url.replace("XX", code_challenge)
+        auth_url = auth_url.replace("{CLIENT_ID}", client_id)
+        auth_url = auth_url.replace("{CODE_CHALLENGE}", code_challenge)
         webbrowser.open(auth_url)
 
         auth_code = run_server()
 
         oauth_server = OAuthTokenServer(code_verifier)
-        oauth_server.do_post(auth_code)
+        oauth_server.get_token(auth_code)
 
     def run_with_wait_window(self):
         self.withdraw()
