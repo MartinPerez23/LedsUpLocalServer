@@ -1,17 +1,18 @@
 import tkinter as tk
 import webbrowser
 import secrets
-import string
 import random
 import hashlib
 import base64
 import threading
 import os
-from oauth_callback_server import run_server
+from time import sleep
+
+from auth_token.oauth_callback_server import run_server
 from tkinter import font as tkfont
 from PIL import Image, ImageTk, ImageSequence # Necesitas Pillow
 from dotenv import load_dotenv
-from oauth_token_server import OAuthTokenServer
+from auth_token.oauth_token_server import OAuthTokenServer
 
 
 load_dotenv()
@@ -32,7 +33,7 @@ def calculate_code_challenge(verifier):
 
 
 
-class ModernLogin(tk.Tk):
+class Login(tk.Tk):
     def __init__(self):
         super().__init__()
         self.code_verifier = None
@@ -51,11 +52,9 @@ class ModernLogin(tk.Tk):
         logo_label = tk.Label(self, image=self.logo, bg="#f5f8fa")
         logo_label.pack(pady=(24, 8))
 
-        # Bienvenida
         tk.Label(self, text="¡Bienvenido!", font=self.title_font, bg="#f5f8fa", fg="#222").pack()
         tk.Label(self, text="Inicia sesión para usar la aplicación", font=self.custom_font, bg="#f5f8fa", fg="#555").pack(pady=(0, 16))
 
-        # Botón moderno
         self.login_btn = tk.Button(
             self,
             text="AUTENTICACIÓN WEB",
@@ -77,6 +76,7 @@ class ModernLogin(tk.Tk):
         self.login_btn.bind("<Enter>", lambda e: self.login_btn.config(bg="#198fd9"))
         self.login_btn.bind("<Leave>", lambda e: self.login_btn.config(bg="#1da1f2"))
 
+        self.protocol("WM_DELETE_WINDOW", self.cerrar)
 
 
     def authentication(self):
@@ -93,13 +93,30 @@ class ModernLogin(tk.Tk):
         oauth_server = OAuthTokenServer(code_verifier)
         oauth_server.get_token(auth_code)
 
+        while True:
+            sleep(3)
+            oauth_server.get_access_token()
+
+
     def run_with_wait_window(self):
         self.withdraw()
         ventana = VentanaEspera()
-        thread = threading.Thread(target=self.authentication)
+
+        def thread_func():
+            self.authentication()
+            ventana.after(0, ventana.quit)
+
+        thread = threading.Thread(target=thread_func)
+        thread.daemon = True
         thread.start()
         ventana.mainloop()
+        ventana.destroy()
 
+        self.deiconify()
+
+    def cerrar(self):
+        self.destroy()
+        self.master.destroy()
 
 class VentanaEspera(tk.Toplevel):
     def __init__(self, master=None):
@@ -137,5 +154,7 @@ class VentanaEspera(tk.Toplevel):
     def cerrar(self):
         self.destroy()
         self.master.destroy()  # Cierra el root principal también
+
+
 
 

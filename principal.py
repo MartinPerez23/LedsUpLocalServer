@@ -11,7 +11,7 @@ import conexion_artnet
 import globales
 
 ssl_context = ssl._create_unverified_context()
-TOKEN = os.environ.get('TOKEN')
+TOKEN = os.environ.get('token')
 WS_URI = "wss://localhost:8000/ledsup/wsremoteandlocal/"
 WS_HEADERS = [
     ("Origin", "https://localhost:8000"),
