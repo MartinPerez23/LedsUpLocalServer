@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 import queue
 import threading
 import time
@@ -7,7 +8,6 @@ from datetime import datetime
 
 import customtkinter as ctk
 import websockets
-from Lib import os
 
 import conexion_artnet
 import globales
@@ -108,10 +108,12 @@ async def escuchar_websocket(app_view):
                     comando_queue.put(comando)
                     await websocket.send(json.dumps({"estado": "ok"}))
                 else:
-                    app_view.print_console("Formato inesperado:" + str(data) + "\n") #todo crear Error en Base de datos
+                    app_view.print_console(
+                        "Formato inesperado:" + str(data) + "\n")  # todo crear Error en Base de datos
 
     except Exception as e:
-        app_view.print_console("Error: " + str(e) + "\n")
+        app_view.print_console("Error: contactar con soporte.\n")
+        app_view.ConnectButton._clicked()
 
 
 def procesar_comandos_thread(controlador: ControladorLEDs, app_view):

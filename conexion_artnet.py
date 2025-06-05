@@ -297,20 +297,6 @@ class ConexionArtnet:
 
                 elif direccion == 'Derecha':
 
-                    # print(str(self.matrizX0) + ' ' + str(self.matrizX1) + ' ' + str(self.matrizX2))
-                    # print(str(self.matrizY0) + ' ' + str(self.matrizY1) + ' ' + str(self.matrizY2))
-                    #
-                    # if posicion > (self.matrizX0 + self.matrizX1 + self.matrizX2) * 3:
-                    #     posicion = 0
-                    #
-                    # for i in range(dispositivo.matrizY):
-                    #     num = i * 3 * dispositivo.matrizX
-                    #     dispositivo.datosAEnviar[posicion + num] = ledRojo
-                    #     dispositivo.datosAEnviar[posicion + 1 + num] = ledVerde
-                    #     dispositivo.datosAEnviar[posicion + 2 + num] = ledAzul
-                    #
-                    # posicion += 3
-
                     if dispositivo.contador == dispositivo.matrizX * 3:
                         dispositivo.reiniciarContador()
 
