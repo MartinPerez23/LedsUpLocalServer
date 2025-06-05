@@ -77,7 +77,8 @@ class ControladorLEDs:
 
         elif accion == 'color':
             detenerTheadsViejos()
-            self.artnet.color(dataJson)
+            t = threading.Thread(target=self.artnet.color, args=(dataJson,), daemon=True)
+            t.start()
 
         elif accion == 'scroll':
             detenerTheadsViejos()

@@ -361,20 +361,45 @@ class ConexionArtnet:
 
     def color(self, dataJson):
         color = dataJson['color']
+        velocidad = dataJson['velocidad']
+        cambio_constante = dataJson['cambio_constante']
+
         threads = list()
 
-        for dispositivo in self.dispositivosActivos:
-            for c in range(dispositivo.matrizX * dispositivo.matrizY * 3):
-                ledRojo = int(color[1] + color[2], 16)
-                ledVerde = int(color[3] + color[4], 16)
-                ledAzul = int(color[5] + color[6], 16)
+        if 'checked' == cambio_constante:
+            while globales.REPETICION:
+                for color in self.coloresScroll:
+                    for dispositivo in self.dispositivosActivos:
+                        for c in range(dispositivo.matrizX * dispositivo.matrizY * 3):
+                            ledRojo = int(color[1] + color[2], 16)
+                            ledVerde = int(color[3] + color[4], 16)
+                            ledAzul = int(color[5] + color[6], 16)
 
-                dispositivo.datosAEnviar.extend([ledRojo, ledVerde, ledAzul])
+                            dispositivo.datosAEnviar.extend([ledRojo, ledVerde, ledAzul])
 
-            threads.append(threading.Thread(target=dispositivo.enviarDatos, daemon=True))
+                        threads.append(threading.Thread(target=dispositivo.enviarDatos, daemon=True))
 
-        for thread in threads:
-            thread.start()
+                    for thread in threads:
+                        thread.start()
+
+                    threads.clear()
+
+                    time.sleep(3 / int(velocidad))
+        else:
+            for dispositivo in self.dispositivosActivos:
+                for c in range(dispositivo.matrizX * dispositivo.matrizY * 3):
+                    ledRojo = int(color[1] + color[2], 16)
+                    ledVerde = int(color[3] + color[4], 16)
+                    ledAzul = int(color[5] + color[6], 16)
+
+                    dispositivo.datosAEnviar.extend([ledRojo, ledVerde, ledAzul])
+
+                threads.append(threading.Thread(target=dispositivo.enviarDatos, daemon=True))
+
+            for thread in threads:
+                thread.start()
+
+            threads.clear()
 
     def probarDispositivo(self):
         for dispositivo in self.dispositivosActivos:
