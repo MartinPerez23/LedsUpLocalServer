@@ -6,8 +6,9 @@ import time
 from datetime import datetime
 
 import customtkinter as ctk
+import requests
 import websockets
-from Lib import os
+import os
 
 import conexion_artnet
 import globales
@@ -23,6 +24,12 @@ WS_HEADERS = [
     ("Origin", "https://ledsupwebserver.onrender.com"),
     ("Authorization", f"Token {TOKEN}")
 ]
+
+ERROR_URL = 'https://127.0.0.1:8000/api/errores/'
+ERROR_HEADERS = {
+    'Content-Type': 'application/json',
+    'Authorization': f'Token {TOKEN}'
+}
 
 comando_queue = queue.Queue()
 ws_stop_event = threading.Event()
@@ -99,6 +106,7 @@ async def escuchar_websocket(app_view):
     try:
         async with websockets.connect(WS_URI, extra_headers=WS_HEADERS) as websocket:
             app_view.print_console("Conectado al servidor Web")
+            raise Exception
             while True:
                 mensaje = await websocket.recv()
                 data = json.loads(mensaje)
@@ -108,10 +116,14 @@ async def escuchar_websocket(app_view):
                     comando_queue.put(comando)
                     await websocket.send(json.dumps({"estado": "ok"}))
                 else:
-                    app_view.print_console("Formato inesperado:" + str(data) + "\n") #todo crear Error en Base de datos
+                    detalle = "Formato inesperado:" + str(data)
+                    app_view.print_console(detalle)
+                    app_view.enviar_error_a_la_web(detalle, 'Al recibir el comando desde la web')
 
     except Exception as e:
-        app_view.print_console("Error: " + str(e) + "\n")
+        app_view.print_console("Error: contactar con soporte.")
+        app_view.enviar_error_a_la_web('Error al recibir el comando desde la web', e.__str__())
+        app_view.ConnectButton._clicked()
 
 
 def procesar_comandos_thread(controlador: ControladorLEDs, app_view):
@@ -206,6 +218,20 @@ class AppView(ctk.CTk):
             self.print_console("Desconectado de la web")
 
             ws_stop_event.set()
+
+    def enviar_error_a_la_web(self, detalle, contexto):
+        error_data = {
+            'detalle': detalle,
+            'contexto': contexto,
+            'origen': 'app'
+        }
+
+        response = requests.post(ERROR_URL, json=error_data, headers=ERROR_HEADERS, verify=False)
+
+        if response.status_code == '200':
+            self.print_console('Error reportado, espera a ser contactado por el equipo de soporte')
+        else:
+            self.print_console('No se ha podido enviar el error, por favor contacte via web')
 
 
 if __name__ == "__main__":
