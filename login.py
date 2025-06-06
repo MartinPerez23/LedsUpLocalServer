@@ -1,36 +1,31 @@
+import base64
+import hashlib
+import os
+import random
+import secrets
+import threading
 import tkinter as tk
 import webbrowser
-import secrets
-import random
-import hashlib
-import base64
-import threading
-import os
-from time import sleep
+from tkinter import font as tkfont
+
+from PIL import Image, ImageTk, ImageSequence  # Necesitas Pillow
+from dotenv import load_dotenv
 
 from auth_token.oauth_callback_server import run_server
-from tkinter import font as tkfont
-from PIL import Image, ImageTk, ImageSequence # Necesitas Pillow
-from dotenv import load_dotenv
 from auth_token.oauth_token_server import OAuthTokenServer
 
-
 load_dotenv()
-# Simulamos credenciales válidas
-USUARIO_VALIDO = "juan"
-PASSWORD_VALIDO = "1234"
-
 
 
 def generate_code_verifier(length=128):
     allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~"
     return ''.join(secrets.choice(allowed) for _ in range(length))
 
+
 def calculate_code_challenge(verifier):
     digest = hashlib.sha256(verifier.encode('ascii')).digest()
     challenge = base64.urlsafe_b64encode(digest).rstrip(b'=').decode('ascii')
     return challenge
-
 
 
 class Login(tk.Tk):
@@ -53,7 +48,8 @@ class Login(tk.Tk):
         logo_label.pack(pady=(24, 8))
 
         tk.Label(self, text="¡Bienvenido!", font=self.title_font, bg="#f5f8fa", fg="#222").pack()
-        tk.Label(self, text="Inicia sesión para usar la aplicación", font=self.custom_font, bg="#f5f8fa", fg="#555").pack(pady=(0, 16))
+        tk.Label(self, text="Inicia sesión para usar la aplicación", font=self.custom_font, bg="#f5f8fa",
+                 fg="#555").pack(pady=(0, 16))
 
         self.login_btn = tk.Button(
             self,
@@ -78,9 +74,8 @@ class Login(tk.Tk):
 
         self.protocol("WM_DELETE_WINDOW", self.cerrar)
 
-
     def authentication(self):
-        code_verifier = generate_code_verifier(random.randint(43,128))
+        code_verifier = generate_code_verifier(random.randint(43, 128))
         code_challenge = calculate_code_challenge(code_verifier)
         auth_url = os.environ.get('AUTH_URL')
         client_id = os.environ.get('CLIENT_ID')
@@ -92,11 +87,6 @@ class Login(tk.Tk):
 
         oauth_server = OAuthTokenServer(code_verifier)
         oauth_server.get_token(auth_code)
-
-        while True:
-            sleep(3)
-            oauth_server.get_access_token()
-
 
     def run_with_wait_window(self):
         self.withdraw()
@@ -112,11 +102,12 @@ class Login(tk.Tk):
         ventana.mainloop()
         ventana.destroy()
 
-        self.deiconify()
+        self.destroy()
 
     def cerrar(self):
         self.destroy()
         self.master.destroy()
+
 
 class VentanaEspera(tk.Toplevel):
     def __init__(self, master=None):
@@ -141,20 +132,16 @@ class VentanaEspera(tk.Toplevel):
         self.protocol("WM_DELETE_WINDOW", self.cerrar)
 
     def cargar_gif(self, ruta_gif):
-            img = Image.open(ruta_gif)
-            self.frames = [ImageTk.PhotoImage(frame.copy().convert("RGBA"))
-                           for frame in ImageSequence.Iterator(img)]
+        img = Image.open(ruta_gif)
+        self.frames = [ImageTk.PhotoImage(frame.copy().convert("RGBA"))
+                       for frame in ImageSequence.Iterator(img)]
 
     def reproducir(self):
-            frame_actual = self.frames[self.indice]
-            self.label.config(image=frame_actual)
-            self.indice = (self.indice + 1) % len(self.frames)
-            self.after(60, self.reproducir)  # Ajusta el tiempo si va muy rápido/lento
+        frame_actual = self.frames[self.indice]
+        self.label.config(image=frame_actual)
+        self.indice = (self.indice + 1) % len(self.frames)
+        self.after(60, self.reproducir)  # Ajusta el tiempo si va muy rápido/lento
 
     def cerrar(self):
         self.destroy()
         self.master.destroy()  # Cierra el root principal también
-
-
-
-
