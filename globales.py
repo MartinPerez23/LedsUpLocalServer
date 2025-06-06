@@ -1,1 +1,2 @@
 REPETICION = True
+TOKEN_USER = None

@@ -9,7 +9,6 @@ from datetime import datetime
 import customtkinter as ctk
 import requests
 import websockets
-import os
 
 import conexion_artnet
 import globales
@@ -28,10 +27,6 @@ WS_HEADERS = [
 ]
 
 ERROR_URL = 'https://ledsupwebserver.onrender.com/api/errores/'
-ERROR_HEADERS = {
-    'Content-Type': 'application/json',
-    'Authorization': globales.TOKEN_USER
-}
 
 comando_queue = queue.Queue()
 ws_stop_event = threading.Event()
@@ -109,7 +104,6 @@ async def escuchar_websocket(app_view):
     try:
         async with websockets.connect(WS_URI, extra_headers=WS_HEADERS) as websocket:
             app_view.print_console("Conectado al servidor Web")
-            raise Exception
             while True:
                 mensaje = await websocket.recv()
                 data = json.loads(mensaje)
@@ -125,7 +119,7 @@ async def escuchar_websocket(app_view):
 
     except Exception as e:
         app_view.print_console("Error: contactar con soporte.")
-        app_view.enviar_error_a_la_web('Error al recibir el comando desde la web', e.__str__())
+        app_view.enviar_error_a_la_web('Error al recibir el comando desde la web', "")
         app_view.ConnectButton._clicked()
 
 
@@ -223,13 +217,18 @@ class AppView(ctk.CTk):
             ws_stop_event.set()
 
     def enviar_error_a_la_web(self, detalle, contexto):
+        error_headers = {
+            'Content-Type': 'application/json',
+            'Authorization': globales.TOKEN_USER
+        }
+
         error_data = {
             'detalle': detalle,
             'contexto': contexto,
             'origen': 'app'
         }
 
-        response = requests.post(ERROR_URL, json=error_data, headers=ERROR_HEADERS, verify=False)
+        response = requests.post(ERROR_URL, json=error_data, headers=error_headers, verify=False)
 
         if response.status_code == '200':
             self.print_console('Error reportado, espera a ser contactado por el equipo de soporte')
