@@ -11,6 +11,7 @@ import websockets
 
 import conexion_artnet
 import globales
+import login
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("dark-blue")
@@ -113,6 +114,7 @@ async def escuchar_websocket(app_view):
                         "Formato inesperado:" + str(data) + "\n")  # todo crear Error en Base de datos
 
     except Exception as e:
+        print(e)
         app_view.print_console("Error: contactar con soporte.\n")
         app_view.ConnectButton._clicked()
 
@@ -212,5 +214,8 @@ class AppView(ctk.CTk):
 
 
 if __name__ == "__main__":
+    app = login.Login()
+    app.mainloop()
+
     app = AppView()
     app.mainloop()
