@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 import queue
 import threading
 import time
@@ -12,6 +13,7 @@ import os
 
 import conexion_artnet
 import globales
+import login
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("dark-blue")
@@ -25,10 +27,10 @@ WS_HEADERS = [
     ("Authorization", f"Token {TOKEN}")
 ]
 
-ERROR_URL = 'https://127.0.0.1:8000/api/errores/'
+ERROR_URL = 'https://ledsupwebserver.onrender.com/api/errores/'
 ERROR_HEADERS = {
     'Content-Type': 'application/json',
-    'Authorization': f'Token {TOKEN}'
+    'Authorization': globales.TOKEN_USER
 }
 
 comando_queue = queue.Queue()
@@ -84,7 +86,8 @@ class ControladorLEDs:
 
         elif accion == 'color':
             detenerTheadsViejos()
-            self.artnet.color(dataJson)
+            t = threading.Thread(target=self.artnet.color, args=(dataJson,), daemon=True)
+            t.start()
 
         elif accion == 'scroll':
             detenerTheadsViejos()
@@ -235,5 +238,8 @@ class AppView(ctk.CTk):
 
 
 if __name__ == "__main__":
+    app = login.Login()
+    app.mainloop()
+
     app = AppView()
     app.mainloop()
