@@ -5,6 +5,7 @@ import queue
 import threading
 import time
 from datetime import datetime
+import excepciones as errores
 
 import customtkinter as ctk
 import websockets
@@ -190,6 +191,8 @@ class AppView(ctk.CTk):
         if self.statusEntry.get() == "Desconectado":
             self.set_status_entry("Conectado", "green")
             self.ConnectButton.configure(text="Desconectar")
+
+            errores.post_error("TEST","TEST", globales.TOKEN)
 
             ws_stop_event.clear()
 
