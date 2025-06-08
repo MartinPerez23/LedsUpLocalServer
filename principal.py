@@ -23,10 +23,7 @@ appWidth, appHeight = 600, 400
 
 TOKEN = os.environ.get('TOKEN')
 WS_URI = "wss://127.0.0.1:8000/ledsup/wsremoteandlocal/"
-WS_HEADERS = [
-    ("Origin", "https://127.0.0.1:8000"),
-    ("Authorization", f"Token {TOKEN}")
-]
+
 
 ERROR_URL = 'https://127.0.0.1:8000/api/errores/'
 
@@ -103,8 +100,12 @@ class ControladorLEDs:
 
 
 async def escuchar_websocket(app_view):
+    header = [
+        ("Origin", "https://127.0.0.1:8000"),
+        ("Authorization", f"Bearer {globales.TOKEN_USER}")
+    ]
     try:
-        async with websockets.connect(WS_URI, extra_headers=WS_HEADERS, ssl=ssl_context) as websocket:
+        async with websockets.connect(WS_URI, extra_headers=header, ssl=ssl_context) as websocket:
             app_view.print_console("Conectado al servidor Web")
             while True:
                 mensaje = await websocket.recv()
