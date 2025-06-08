@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 import queue
+import ssl
 import threading
 import time
 from datetime import datetime
@@ -13,6 +14,7 @@ import websockets
 import conexion_artnet
 import globales
 import login
+ssl_context = ssl._create_unverified_context()
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("dark-blue")
@@ -102,7 +104,7 @@ class ControladorLEDs:
 
 async def escuchar_websocket(app_view):
     try:
-        async with websockets.connect(WS_URI, extra_headers=WS_HEADERS) as websocket:
+        async with websockets.connect(WS_URI, extra_headers=WS_HEADERS, ssl=ssl_context) as websocket:
             app_view.print_console("Conectado al servidor Web")
             while True:
                 mensaje = await websocket.recv()
@@ -118,8 +120,7 @@ async def escuchar_websocket(app_view):
                     app_view.enviar_error_a_la_web(detalle, 'Al recibir el comando desde la web')
 
     except Exception as e:
-        app_view.print_console("Error: contactar con soporte.")
-        app_view.enviar_error_a_la_web('Error al recibir el comando desde la web', "")
+        app_view.enviar_error_a_la_web('Error al recibir el comando desde la web', str(e))
         app_view.ConnectButton._clicked()
 
 
