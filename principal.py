@@ -20,13 +20,13 @@ ctk.set_default_color_theme("dark-blue")
 appWidth, appHeight = 600, 400
 
 TOKEN = os.environ.get('TOKEN')
-WS_URI = "wss://ledsupwebserver.onrender.com/ledsup/wsremoteandlocal/"
+WS_URI = "wss://127.0.0.1:8000/ledsup/wsremoteandlocal/"
 WS_HEADERS = [
-    ("Origin", "https://ledsupwebserver.onrender.com"),
+    ("Origin", "https://127.0.0.1:8000"),
     ("Authorization", f"Token {TOKEN}")
 ]
 
-ERROR_URL = 'https://ledsupwebserver.onrender.com/api/errores/'
+ERROR_URL = 'https://127.0.0.1:8000/api/errores/'
 
 comando_queue = queue.Queue()
 ws_stop_event = threading.Event()
@@ -219,7 +219,7 @@ class AppView(ctk.CTk):
     def enviar_error_a_la_web(self, detalle, contexto):
         error_headers = {
             'Content-Type': 'application/json',
-            'Authorization': globales.TOKEN_USER
+            'Authorization': 'Bearer ' + globales.TOKEN_USER
         }
 
         error_data = {
@@ -230,7 +230,7 @@ class AppView(ctk.CTk):
 
         response = requests.post(ERROR_URL, json=error_data, headers=error_headers, verify=False)
 
-        if response.status_code == '200':
+        if response.status_code == 201:
             self.print_console('Error reportado, espera a ser contactado por el equipo de soporte')
         else:
             self.print_console('No se ha podido enviar el error, por favor contacte via web')
