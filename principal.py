@@ -28,7 +28,7 @@ WS_URI = "wss://127.0.0.1:8000/ledsup/wsremoteandlocal/"
 ERROR_URL = 'https://127.0.0.1:8000/api/errores/'
 
 comando_queue = queue.Queue()
-ws_stop_event = threading.Event()
+ws_stop_event = None
 
 
 def detenerTheadsViejos():
@@ -99,7 +99,9 @@ class ControladorLEDs:
             t.start()
 
 
-async def escuchar_websocket(app_view):
+import asyncio
+
+async def escuchar_websocket(app_view, stop_event: asyncio.Event):
     header = [
         ("Origin", "https://127.0.0.1:8000"),
         ("Authorization", f"Bearer {globales.TOKEN_USER}")
@@ -107,22 +109,31 @@ async def escuchar_websocket(app_view):
     try:
         async with websockets.connect(WS_URI, extra_headers=header, ssl=ssl_context) as websocket:
             app_view.print_console("Conectado al servidor Web")
-            while True:
-                mensaje = await websocket.recv()
-                data = json.loads(mensaje)
-                comando = data.get('data')
+            while not stop_event.is_set():
+                try:
+                    mensaje = await asyncio.wait_for(websocket.recv(), timeout=1.0)
+                    data = json.loads(mensaje)
+                    comando = data.get('data')
 
-                if comando:
-                    comando_queue.put(comando)
-                    await websocket.send(json.dumps({"estado": "ok"}))
-                else:
-                    detalle = "Formato inesperado:" + str(data)
-                    app_view.print_console(detalle)
-                    app_view.enviar_error_a_la_web(detalle, 'Al recibir el comando desde la web')
+                    if comando:
+                        comando_queue.put(comando)
+                        await websocket.send(json.dumps({"estado": "ok"}))
+                    else:
+                        detalle = "Formato inesperado:" + str(data)
+                        app_view.print_console(detalle)
+                        app_view.enviar_error_a_la_web(detalle, 'Al recibir el comando desde la web')
+
+                except asyncio.TimeoutError:
+                    # Este timeout permite verificar periódicamente si stop_event está seteado
+                    continue
 
     except Exception as e:
         app_view.enviar_error_a_la_web('Error al recibir el comando desde la web', str(e))
         app_view.ConnectButton._clicked()
+    finally:
+        # Se llega acá cuando el stop_event está seteado o hay excepción
+        await websocket.close()
+        app_view.print_console("Desconectado del servidor Web")
 
 
 def procesar_comandos_thread(controlador: ControladorLEDs, app_view):
@@ -136,6 +147,10 @@ def procesar_comandos_thread(controlador: ControladorLEDs, app_view):
 class AppView(ctk.CTk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        self.hilo_ws = None
+        self.loop = None
+        self.ws_stop_event = None
 
         self.title("Led's up")
         self.geometry("600x400")
@@ -191,22 +206,22 @@ class AppView(ctk.CTk):
         self.displayBox.configure(state="disabled")
 
     def change_status(self):
-        global ws_stop_event
-
         if self.statusEntry.get() == "Desconectado":
             self.set_status_entry("Conectado", "green")
             self.ConnectButton.configure(text="Desconectar")
 
-            ws_stop_event.clear()
+            # Acá inicializamos el event y el loop
+            self.ws_stop_event = asyncio.Event()
+            self.loop = asyncio.new_event_loop()
 
             controlador = ControladorLEDs()
-
             hilo_procesador = threading.Thread(target=procesar_comandos_thread, args=(controlador, self), daemon=True)
-
             hilo_procesador.start()
 
+            # Defino la función para correr el websocket con el loop que creamos
             def iniciar_websocket():
-                asyncio.run(escuchar_websocket(self))
+                asyncio.set_event_loop(self.loop)  # seteamos el loop en el thread
+                self.loop.run_until_complete(escuchar_websocket(self, self.ws_stop_event))
 
             self.hilo_ws = threading.Thread(target=iniciar_websocket, daemon=True)
             self.hilo_ws.start()
@@ -216,7 +231,10 @@ class AppView(ctk.CTk):
             self.ConnectButton.configure(text="Conectar")
             self.print_console("Desconectado de la web")
 
-            ws_stop_event.set()
+            # Al desconectar, seteo el event para que termine la corutina
+            if self.ws_stop_event:
+                self.loop.call_soon_threadsafe(self.ws_stop_event.set)  # thread safe para setear el event
+
 
     def enviar_error_a_la_web(self, detalle, contexto):
         error_headers = {
