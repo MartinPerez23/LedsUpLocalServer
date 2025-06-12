@@ -4,6 +4,7 @@ from urllib.parse import urlparse, parse_qs
 
 PORT = 34123
 
+
 class OAuthCallbackHandler(http.server.BaseHTTPRequestHandler):
     code = None
 
@@ -20,6 +21,7 @@ class OAuthCallbackHandler(http.server.BaseHTTPRequestHandler):
         else:
             self.send_response(404)
             self.end_headers()
+
 
 def run_server():
     with socketserver.TCPServer(("127.0.0.1", PORT), OAuthCallbackHandler) as httpd:

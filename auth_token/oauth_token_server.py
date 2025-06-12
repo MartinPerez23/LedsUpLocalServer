@@ -1,4 +1,3 @@
-
 import os
 import time
 import requests
@@ -34,11 +33,10 @@ class OAuthTokenServer:
         try:
             response = requests.post(os.environ.get('TOKEN_URL'), data=data, headers=headers, verify=False)
             response.raise_for_status()
-        except requests.exceptions.HTTPError as e:
+        except requests.exceptions.HTTPError:
             return
 
         self.save_response(response)
-
 
     def get_access_token(self):
         now = time.time()
@@ -63,4 +61,5 @@ class OAuthTokenServer:
         self.access_token = response.json()["access_token"]
         self.refresh_token = response.json()["refresh_token"]
         self.token_expiry = time.time() + response.json()['expires_in'] - 60
-        globales.TOKEN_USER = self.access_token
+        globales.AUTH_TOKEN_USUARIO = self.access_token
+        globales.NOMBRE_USUARIO = response.json().get("user_name", "Desconocido")
