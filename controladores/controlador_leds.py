@@ -1,8 +1,8 @@
 import threading
 import time
 
-from conexiones import conexion_artnet
 import globales
+from conexiones import conexion_artnet
 from modelos.modelo_leds import ModeloLEDs
 
 
@@ -19,6 +19,8 @@ class ControladorLEDs:
 
     def procesar_comando(self, data_json, app_view):
         self.artnet.dispositivosActivos.clear()
+        self.modelo.clear_estado_leds()
+
         accion = data_json['accion']
         dispositivos_actuales = data_json['lista']
         numero_dispositivos = int(len(dispositivos_actuales) / 7)
@@ -42,8 +44,9 @@ class ControladorLEDs:
             orden = orden_map.get(orden, 4)
 
             self.artnet.buscar_o_agregar_dispositivo(ip, universo, patch, matriz_x, matriz_y, orden, tipo_led)
-            self.modelo.actualizar_estado_led(nombre_dispositivo, accion)
-            app_view.dispositivosFrame.actualizar_dispositivos(self.modelo.obtener_estado_led())
+            self.modelo.add_estado_leds(nombre_dispositivo, accion)
+
+        app_view.dispositivosFrame.actualizar_dispositivos(self.modelo.get_estado_leds())
 
         self.artnet.dispositivosActivos = sorted(
             self.artnet.dispositivosActivos, key=lambda d: d.orden

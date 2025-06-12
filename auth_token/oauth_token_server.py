@@ -1,5 +1,6 @@
 import os
 import time
+
 import requests
 from dotenv import load_dotenv
 
@@ -62,4 +63,3 @@ class OAuthTokenServer:
         self.refresh_token = response.json()["refresh_token"]
         self.token_expiry = time.time() + response.json()['expires_in'] - 60
         globales.AUTH_TOKEN_USUARIO = self.access_token
-        globales.NOMBRE_USUARIO = response.json().get("user_name", "Desconocido")

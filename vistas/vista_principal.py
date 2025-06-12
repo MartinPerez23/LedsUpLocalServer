@@ -5,11 +5,13 @@ import queue
 import threading
 
 import customtkinter as ctk
-import requests
 import websockets
 
 import globales
+from controladores.controlador_errores import ControladorErrores
 from controladores.controlador_leds import ControladorLEDs
+from controladores.controlador_usuario import ControladorUsuario
+from vistas.vista_popup_mensaje import PopupMensaje
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("dark-blue")
@@ -36,16 +38,17 @@ async def escuchar_websocket(app_view, stop_event: asyncio.Event):
                         comando_queue.put(comando)
                         await websocket.send(json.dumps({"estado": "ok"}))
                     else:
-                        PopupMensaje(app_view, "Se recibio un comando inesperado desde la web, vuelva a intentarlo")
-                        app_view.enviar_error_a_la_web("Formato inesperado:" + str(data),
-                                                       'Al recibir el comando desde la web')
+                        PopupMensaje(app_view, "Se recibio un comando inesperado desde la web, vuelva a intentarlo",
+                                     True)
+                        app_view.reportar_error("Formato inesperado:" + str(data),
+                                                'Al recibir el comando desde la web')
 
                 except asyncio.TimeoutError:
                     # Este timeout permite verificar periódicamente si stop_event está seteado
                     continue
 
     except Exception as e:
-        app_view.enviar_error_a_la_web('Al recibir el comando desde la web', str(e))
+        app_view.reportar_error('Al recibir el comando desde la web', str(e))
         app_view.ConnectButton._clicked()
     finally:
         await websocket.close()
@@ -62,6 +65,10 @@ def procesar_comandos_thread(controlador: ControladorLEDs, app_view):
 class AppView(ctk.CTk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        self.controlador_usuario = ControladorUsuario()
+        self.controlador_error = ControladorErrores()
+        self.controlador_leds = ControladorLEDs()
 
         self.hilo_ws = None
         self.loop = None
@@ -83,7 +90,8 @@ class AppView(ctk.CTk):
 
         self.userEntry = ctk.CTkEntry(self, state='disabled')
         self.userEntry.grid(row=1, column=1, padx=10, pady=10)
-        self.set_user_entry(globales.NOMBRE_USUARIO)
+
+        self.set_user_entry(self.controlador_usuario.get_user_name())
 
         self.ConnectButton = ctk.CTkButton(self, text="Conectar", command=self.change_status)
         self.ConnectButton.grid(row=4, column=0, columnspan=2, padx=10, pady=20, sticky="ew")
@@ -120,8 +128,8 @@ class AppView(ctk.CTk):
             self.ws_stop_event = asyncio.Event()
             self.loop = asyncio.new_event_loop()
 
-            controlador = ControladorLEDs()
-            hilo_procesador = threading.Thread(target=procesar_comandos_thread, args=(controlador, self), daemon=True)
+            hilo_procesador = threading.Thread(target=procesar_comandos_thread, args=(self.controlador_leds, self),
+                                               daemon=True)
             hilo_procesador.start()
 
             # Defino la función para correr el websocket con el loop que creamos
@@ -140,29 +148,8 @@ class AppView(ctk.CTk):
             if self.ws_stop_event:
                 self.loop.call_soon_threadsafe(self.ws_stop_event.set)  # thread safe para setear el event
 
-    def enviar_error_a_la_web(self, detalle, contexto):
-
-        if not globales.AUTH_TOKEN_USUARIO:
-            PopupMensaje(self, 'No se puede enviar el error, no hay usuario autenticado. Intente ingregar nuevamente')
-            return
-
-        error_headers = {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + globales.AUTH_TOKEN_USUARIO
-        }
-
-        error_data = {
-            'detalle': detalle,
-            'contexto': contexto,
-            'origen': 'app'
-        }
-
-        response = requests.post(os.environ.get('ERROR_URL'), json=error_data, headers=error_headers, verify=False)
-
-        if response.status_code == 201:
-            PopupMensaje(self, 'Error reportado, espera a ser contactado por el equipo de soporte')
-        else:
-            PopupMensaje(self, 'No se ha podido enviar el error, por favor contacte via web')
+    def reportar_error(self, detalle, contexto):
+        self.controlador_error.enviar_error_a_la_web(detalle, contexto, self)
 
 
 class DispositivosFrame(ctk.CTkScrollableFrame):
@@ -176,46 +163,6 @@ class DispositivosFrame(ctk.CTkScrollableFrame):
         self.labels.clear()
 
         for idx, (nombre_dispositivo, accion) in enumerate(dispositivos.items()):
-            label = ctk.CTkLabel(self, text=f"Nombre {nombre_dispositivo} -> {accion}")
+            label = ctk.CTkLabel(self, text=f"Dispositivo: {nombre_dispositivo} -> {accion}")
             label.grid(row=idx, column=0, padx=10, pady=5, sticky="w")
             self.labels.append(label)
-
-
-class PopupMensaje(ctk.CTkToplevel):
-    def __init__(self, parent, mensaje):
-        super().__init__(parent)
-        self.title("Error")
-        self.resizable(False, False)
-        self.transient(parent)
-        self.grab_set()
-        self.lift()
-        self.attributes("-topmost", True)
-
-        try:
-            from PIL import Image
-            error_img = ctk.CTkImage(Image.open("imagenes/error.png"), size=(32, 32))
-            icono = ctk.CTkLabel(self, image=error_img, text="")
-            icono.pack(pady=(10, 0))
-        except Exception as e:
-            print(e)
-            pass
-
-        label = ctk.CTkLabel(self, text=mensaje, wraplength=250, justify="center")
-        label.pack(pady=10, padx=10)
-        boton = ctk.CTkButton(self, text="Aceptar", command=self.destroy, fg_color="red", hover_color="#1F6AA5")
-        boton.pack(pady=10)
-
-        self.update_idletasks()
-        width = self.winfo_reqwidth() + 20
-        height = self.winfo_reqheight() + 20
-
-        parent.update_idletasks()
-        parent_x = parent.winfo_rootx()
-        parent_y = parent.winfo_rooty()
-        parent_width = parent.winfo_width()
-        parent_height = parent.winfo_height()
-
-        x = parent_x + (parent_width // 2) - (width // 2)
-        y = parent_y + (parent_height // 2) - (height // 2)
-
-        self.geometry(f"{width}x{height}+{x}+{y}")
