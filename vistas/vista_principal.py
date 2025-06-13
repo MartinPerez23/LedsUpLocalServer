@@ -49,7 +49,7 @@ async def escuchar_websocket(app_view, stop_event: asyncio.Event):
 
     except Exception as e:
         app_view.reportar_error('Al recibir el comando desde la web', str(e))
-        app_view.ConnectButton._clicked()
+        app_view.change_status()
     finally:
         await websocket.close()
 
