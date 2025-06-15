@@ -3,7 +3,8 @@ import json
 import os
 import queue
 import threading
-
+import time
+import ssl
 import customtkinter as ctk
 import websockets
 
@@ -20,14 +21,16 @@ appWidth, appHeight = 600, 400
 
 comando_queue = queue.Queue()
 
-
+ssl_context = ssl._create_unverified_context()
 async def escuchar_websocket(app_view, stop_event: asyncio.Event):
     header = [
         ("Origin", os.environ.get('ORIGIN')),
         ("Authorization", f"Bearer {globales.AUTH_TOKEN_USUARIO}")
     ]
+    websocket = None
     try:
-        async with websockets.connect(os.environ.get('WS_URI'), extra_headers=header) as websocket:
+        async with websockets.connect(os.environ.get('WS_URI'), extra_headers=header ,ssl=ssl_context) as ws:
+            websocket = ws  # ⬅️ La guardamos para el finally
             while not stop_event.is_set():
                 try:
                     mensaje = await asyncio.wait_for(websocket.recv(), timeout=1.0)
@@ -38,20 +41,18 @@ async def escuchar_websocket(app_view, stop_event: asyncio.Event):
                         comando_queue.put(comando)
                         await websocket.send(json.dumps({"estado": "ok"}))
                     else:
-                        PopupMensaje(app_view, "Se recibio un comando inesperado desde la web, vuelva a intentarlo",
-                                     True)
-                        app_view.reportar_error("Formato inesperado:" + str(data),
-                                                'Al recibir el comando desde la web')
+                        PopupMensaje(app_view, "Se recibió un comando inesperado desde la web, vuelva a intentarlo", True)
+                        app_view.reportar_error("Formato inesperado:" + str(data), 'Al recibir el comando desde la web')
 
                 except asyncio.TimeoutError:
-                    # Este timeout permite verificar periódicamente si stop_event está seteado
                     continue
 
     except Exception as e:
         app_view.reportar_error('Al recibir el comando desde la web', str(e))
         app_view.change_status()
     finally:
-        await websocket.close()
+        if websocket:
+            await websocket.close()
 
 
 def procesar_comandos_thread(controlador: ControladorLEDs, app_view):
@@ -120,6 +121,8 @@ class AppView(ctk.CTk):
         self.statusEntry.configure(state="disabled", text_color=color)
 
     def change_status(self):
+        self.ConnectButton.configure(state="disabled")
+
         if self.statusEntry.get() == "Desconectado":
             self.set_status_entry("Conectado", "green")
             self.ConnectButton.configure(text="Desconectar")
@@ -132,9 +135,8 @@ class AppView(ctk.CTk):
                                                daemon=True)
             hilo_procesador.start()
 
-            # Defino la función para correr el websocket con el loop que creamos
             def iniciar_websocket():
-                asyncio.set_event_loop(self.loop)  # seteamos el loop en el thread
+                asyncio.set_event_loop(self.loop)
                 self.loop.run_until_complete(escuchar_websocket(self, self.ws_stop_event))
 
             self.hilo_ws = threading.Thread(target=iniciar_websocket, daemon=True)
@@ -147,6 +149,12 @@ class AppView(ctk.CTk):
             # Al desconectar, seteo el event para que termine la corutina
             if self.ws_stop_event:
                 self.loop.call_soon_threadsafe(self.ws_stop_event.set)  # thread safe para setear el event
+
+        def habilitar_boton():
+            time.sleep(1)
+            self.ConnectButton.configure(state="normal")
+
+        threading.Thread(target=habilitar_boton, daemon=True).start()
 
     def reportar_error(self, detalle, contexto):
         self.controlador_error.enviar_error_a_la_web(detalle, contexto, self)
