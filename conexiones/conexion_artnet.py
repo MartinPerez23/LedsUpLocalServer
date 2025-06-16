@@ -1,10 +1,9 @@
+import random
 import threading
 import time
 
 import conexiones.dispositivo_artnet as dispositivo_artnet
 import globales
-
-import random
 
 
 class ConexionArtnet:
@@ -366,27 +365,32 @@ class ConexionArtnet:
         threads = list()
 
         if 'checked' == cambio_constante:
+            led_actual = 0
             while globales.REPETICION:
-                for color in self.coloresScroll:
-                    for dispositivo in self.dispositivosActivos:
-                        for c in range(dispositivo.matrizX * dispositivo.matrizY * 3):
-                            led_rojo = int(color[1] + color[2], 16)
-                            led_verde = int(color[3] + color[4], 16)
-                            led_azul = int(color[5] + color[6], 16)
+                # Usar módulo para mantener el contador dentro del rango de la lista
+                color = self.coloresScroll[led_actual % len(self.coloresScroll)]
 
-                            dispositivo.datosAEnviar.extend([led_rojo, led_verde, led_azul])
+                for dispositivo in self.dispositivosActivos:
+                    for c in range(dispositivo.matrizX * dispositivo.matrizY):
+                        led_rojo = int(color[1] + color[2], 16)
+                        led_verde = int(color[3] + color[4], 16)
+                        led_azul = int(color[5] + color[6], 16)
 
-                        threads.append(threading.Thread(target=dispositivo.enviar_datos, daemon=True))
+                        dispositivo.datosAEnviar.extend([led_rojo, led_verde, led_azul])
 
-                    for thread in threads:
-                        thread.start()
+                    threads.append(threading.Thread(target=dispositivo.enviar_datos, daemon=True))
 
-                    threads.clear()
+                for thread in threads:
+                    thread.start()
 
-                    time.sleep(3 / int(velocidad))
+                threads.clear()
+
+                time.sleep(3 / int(velocidad))
+
+                led_actual += 1
         else:
             for dispositivo in self.dispositivosActivos:
-                for c in range(dispositivo.matrizX * dispositivo.matrizY * 3):
+                for c in range(dispositivo.matrizX * dispositivo.matrizY):
                     led_rojo = int(color[1] + color[2], 16)
                     led_verde = int(color[3] + color[4], 16)
                     led_azul = int(color[5] + color[6], 16)

@@ -2,15 +2,16 @@ import asyncio
 import json
 import os
 import queue
+import ssl
 import threading
 import time
-import ssl
+
 import customtkinter as ctk
 import websockets
 
 import globales
 from controladores.controlador_errores import ControladorErrores
-from controladores.controlador_leds import ControladorLEDs
+from controladores.controlador_leds import ControladorLEDs, detener_theads_viejos
 from controladores.controlador_usuario import ControladorUsuario
 from vistas.vista_popup_mensaje import PopupMensaje
 
@@ -22,6 +23,8 @@ appWidth, appHeight = 600, 400
 comando_queue = queue.Queue()
 
 ssl_context = ssl._create_unverified_context()
+
+
 async def escuchar_websocket(app_view, stop_event: asyncio.Event):
     header = [
         ("Origin", os.environ.get('ORIGIN')),
@@ -29,7 +32,7 @@ async def escuchar_websocket(app_view, stop_event: asyncio.Event):
     ]
     websocket = None
     try:
-        async with websockets.connect(os.environ.get('WS_URI'), extra_headers=header ,ssl=ssl_context) as ws:
+        async with websockets.connect(os.environ.get('WS_URI'), extra_headers=header, ssl=ssl_context) as ws:
             websocket = ws  # ⬅️ La guardamos para el finally
             while not stop_event.is_set():
                 try:
@@ -41,7 +44,8 @@ async def escuchar_websocket(app_view, stop_event: asyncio.Event):
                         comando_queue.put(comando)
                         await websocket.send(json.dumps({"estado": "ok"}))
                     else:
-                        PopupMensaje(app_view, "Se recibió un comando inesperado desde la web, vuelva a intentarlo", True)
+                        PopupMensaje(app_view, "Se recibió un comando inesperado desde la web, vuelva a intentarlo",
+                                     True)
                         app_view.reportar_error("Formato inesperado:" + str(data), 'Al recibir el comando desde la web')
 
                 except asyncio.TimeoutError:
@@ -145,6 +149,7 @@ class AppView(ctk.CTk):
         else:
             self.set_status_entry("Desconectado", "red")
             self.ConnectButton.configure(text="Conectar")
+            detener_theads_viejos()
 
             # Al desconectar, seteo el event para que termine la corutina
             if self.ws_stop_event:
