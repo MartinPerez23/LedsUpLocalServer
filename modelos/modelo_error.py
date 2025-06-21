@@ -1,19 +1,17 @@
 import os
 
 import requests
-
+from auth_token.oauth_token_server import TokenManager
 
 class ModeloError:
-    def __init__(self, auth_token):
-        self.auth_token = auth_token
 
     def enviar_error(self, detalle, contexto):
-        if not self.auth_token:
-            raise Exception('No hay token de autenticación')
+
+        token = TokenManager.get_token()
 
         headers = {
             'Content-Type': 'application/json',
-            'Authorization': f'Bearer {self.auth_token}'
+            'Authorization': f'Bearer {token}'
         }
 
         error_data = {
