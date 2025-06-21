@@ -8,16 +8,37 @@ import globales
 
 load_dotenv()
 
+class TokenManager:
+    @staticmethod
+    def get_token():
+        if time.time() > globales.AUTH_TOKEN_EXPIRY:
+            TokenManager.refresh_token()
+        return globales.AUTH_TOKEN_USUARIO
 
-class OAuthTokenServer:
+    @staticmethod
+    def refresh_token():
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+        data = {
+            "grant_type": "refresh_token",
+            "refresh_token": globales.AUTH_REFRESH_TOKEN,
+            "client_id": os.environ.get('CLIENT_ID'),
+            "client_secret": os.environ.get('SECRET'),
+        }
+        response = requests.post(os.environ.get('TOKEN_URL'), data=data, headers=headers, verify=False)
+        response.raise_for_status()
+        TokenManager.save_response(response)
 
-    def __init__(self, code_verifier):
-        self.code_verifier = code_verifier
-        self.access_token = None
-        self.refresh_token = None
-        self.token_expiry = 0
+    @staticmethod
+    def save_response(response):
+        json_data = response.json()
+        globales.AUTH_TOKEN_USUARIO = json_data["access_token"]
+        globales.AUTH_REFRESH_TOKEN = json_data["refresh_token"]
+        globales.AUTH_TOKEN_EXPIRY = time.time() + json_data['expires_in'] - 60
 
-    def get_token(self, code):
+    @staticmethod
+    def get_token_with_code(code, code_verifier):
         headers = {
             "Cache-Control": "no-cache",
             "Content-Type": "application/x-www-form-urlencoded",
@@ -28,38 +49,8 @@ class OAuthTokenServer:
             "redirect_uri": os.environ.get('REDIRECT_URL'),
             "client_id": os.environ.get('CLIENT_ID'),
             "client_secret": os.environ.get('SECRET'),
-            "code_verifier": self.code_verifier,
-        }
-
-        try:
-            response = requests.post(os.environ.get('TOKEN_URL'), data=data, headers=headers, verify=False)
-            response.raise_for_status()
-        except requests.exceptions.HTTPError:
-            return
-
-        self.save_response(response)
-
-    def get_access_token(self):
-        now = time.time()
-        if self.access_token is None or now > self.token_expiry:
-            self.refresh_access_token()
-        return self.access_token
-
-    def refresh_access_token(self):
-        headers = {
-            "Content-Type": "application/x-www-form-urlencoded"
-        }
-        data = {
-            "grant_type": "refresh_token",
-            "refresh_token": self.refresh_token,
-            "client_id": os.environ.get('CLIENT_ID'),
-            "client_secret": os.environ.get('SECRET'),
+            "code_verifier": code_verifier,
         }
         response = requests.post(os.environ.get('TOKEN_URL'), data=data, headers=headers, verify=False)
-        self.save_response(response)
-
-    def save_response(self, response):
-        self.access_token = response.json()["access_token"]
-        self.refresh_token = response.json()["refresh_token"]
-        self.token_expiry = time.time() + response.json()['expires_in'] - 60
-        globales.AUTH_TOKEN_USUARIO = self.access_token
+        response.raise_for_status()
+        TokenManager.save_response(response)
