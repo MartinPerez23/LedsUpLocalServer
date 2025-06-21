@@ -12,7 +12,7 @@ from PIL import Image, ImageTk, ImageSequence
 from dotenv import load_dotenv
 
 from auth_token.oauth_callback_server import run_server
-from auth_token.oauth_token_server import OAuthTokenServer
+from auth_token.oauth_token_server import TokenManager
 
 load_dotenv()
 
@@ -26,6 +26,20 @@ def calculate_code_challenge(verifier):
     digest = hashlib.sha256(verifier.encode('ascii')).digest()
     challenge = base64.urlsafe_b64encode(digest).rstrip(b'=').decode('ascii')
     return challenge
+
+
+def authentication():
+    code_verifier = generate_code_verifier(random.randint(43, 128))
+    code_challenge = calculate_code_challenge(code_verifier)
+    auth_url = os.environ.get('AUTH_URL')
+    client_id = os.environ.get('CLIENT_ID')
+    auth_url = auth_url.replace("{CLIENT_ID}", client_id)
+    auth_url = auth_url.replace("{CODE_CHALLENGE}", code_challenge)
+    webbrowser.open(auth_url)
+
+    auth_code = run_server()
+
+    TokenManager.get_token_with_code(auth_code,code_verifier)
 
 
 class Login(tk.Tk):
@@ -74,26 +88,12 @@ class Login(tk.Tk):
 
         self.protocol("WM_DELETE_WINDOW", self.cerrar)
 
-    def authentication(self):
-        code_verifier = generate_code_verifier(random.randint(43, 128))
-        code_challenge = calculate_code_challenge(code_verifier)
-        auth_url = os.environ.get('AUTH_URL')
-        client_id = os.environ.get('CLIENT_ID')
-        auth_url = auth_url.replace("{CLIENT_ID}", client_id)
-        auth_url = auth_url.replace("{CODE_CHALLENGE}", code_challenge)
-        webbrowser.open(auth_url)
-
-        auth_code = run_server()
-
-        oauth_server = OAuthTokenServer(code_verifier)
-        oauth_server.get_token(auth_code)
-
     def run_with_wait_window(self):
         self.withdraw()
         ventana = VentanaEspera()
 
         def thread_func():
-            self.authentication()
+            authentication()
             ventana.after(0, ventana.quit)
 
         thread = threading.Thread(target=thread_func)

@@ -4,16 +4,13 @@ import os
 import queue
 import ssl
 import threading
-import time
-
 import customtkinter as ctk
 import websockets
-
-import globales
-from controladores.controlador_errores import ControladorErrores
+from controladores.controlador_errores import enviar_error_a_la_web
 from controladores.controlador_leds import ControladorLEDs, detener_theads_viejos
 from controladores.controlador_usuario import ControladorUsuario
 from vistas.vista_popup_mensaje import PopupMensaje
+from auth_token.oauth_token_server import TokenManager
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("dark-blue")
@@ -21,19 +18,23 @@ ctk.set_default_color_theme("dark-blue")
 appWidth, appHeight = 600, 400
 
 comando_queue = queue.Queue()
-
 ssl_context = ssl._create_unverified_context()
 
 
 async def escuchar_websocket(app_view, stop_event: asyncio.Event):
+    token = TokenManager.get_token()
     header = [
         ("Origin", os.environ.get('ORIGIN')),
-        ("Authorization", f"Bearer {globales.AUTH_TOKEN_USUARIO}")
+        ("Authorization", f"Bearer {token}")
     ]
     websocket = None
     try:
         async with websockets.connect(os.environ.get('WS_URI'), extra_headers=header, ssl=ssl_context) as ws:
-            websocket = ws  # ⬅️ La guardamos para el finally
+            websocket = ws
+            # ✅ Confirmar conexión exitosa
+            app_view.set_status_entry("Conectado", "green")
+            app_view.ConnectButton.configure(text="Desconectar", state="normal")
+
             while not stop_event.is_set():
                 try:
                     mensaje = await asyncio.wait_for(websocket.recv(), timeout=1.0)
@@ -44,8 +45,7 @@ async def escuchar_websocket(app_view, stop_event: asyncio.Event):
                         comando_queue.put(comando)
                         await websocket.send(json.dumps({"estado": "ok"}))
                     else:
-                        PopupMensaje(app_view, "Se recibió un comando inesperado desde la web, vuelva a intentarlo",
-                                     True)
+                        PopupMensaje(app_view, "Se recibió un comando inesperado desde la web, vuelva a intentarlo", True)
                         app_view.reportar_error("Formato inesperado:" + str(data), 'Al recibir el comando desde la web')
 
                 except asyncio.TimeoutError:
@@ -53,7 +53,8 @@ async def escuchar_websocket(app_view, stop_event: asyncio.Event):
 
     except Exception as e:
         app_view.reportar_error('Al recibir el comando desde la web', str(e))
-        app_view.change_status()
+        app_view.set_status_entry("Desconectado", "red")
+        app_view.ConnectButton.configure(text="Conectar", state="normal")
     finally:
         if websocket:
             await websocket.close()
@@ -72,7 +73,6 @@ class AppView(ctk.CTk):
         super().__init__(*args, **kwargs)
 
         self.controlador_usuario = ControladorUsuario()
-        self.controlador_error = ControladorErrores()
         self.controlador_leds = ControladorLEDs()
 
         self.hilo_ws = None
@@ -128,15 +128,12 @@ class AppView(ctk.CTk):
         self.ConnectButton.configure(state="disabled")
 
         if self.statusEntry.get() == "Desconectado":
-            self.set_status_entry("Conectado", "green")
-            self.ConnectButton.configure(text="Desconectar")
+            self.set_status_entry("Cargando...", "orange")
 
-            # Acá inicializamos el event y el loop
             self.ws_stop_event = asyncio.Event()
             self.loop = asyncio.new_event_loop()
 
-            hilo_procesador = threading.Thread(target=procesar_comandos_thread, args=(self.controlador_leds, self),
-                                               daemon=True)
+            hilo_procesador = threading.Thread(target=procesar_comandos_thread, args=(self.controlador_leds, self), daemon=True)
             hilo_procesador.start()
 
             def iniciar_websocket():
@@ -151,18 +148,13 @@ class AppView(ctk.CTk):
             self.ConnectButton.configure(text="Conectar")
             detener_theads_viejos()
 
-            # Al desconectar, seteo el event para que termine la corutina
             if self.ws_stop_event:
-                self.loop.call_soon_threadsafe(self.ws_stop_event.set)  # thread safe para setear el event
+                self.loop.call_soon_threadsafe(self.ws_stop_event.set)
 
-        def habilitar_boton():
-            time.sleep(1)
             self.ConnectButton.configure(state="normal")
 
-        threading.Thread(target=habilitar_boton, daemon=True).start()
-
     def reportar_error(self, detalle, contexto):
-        self.controlador_error.enviar_error_a_la_web(detalle, contexto, self)
+        enviar_error_a_la_web(self, detalle, contexto, self)
 
 
 class DispositivosFrame(ctk.CTkScrollableFrame):
