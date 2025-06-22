@@ -13,11 +13,9 @@ class OAuthCallbackHandler(http.server.BaseHTTPRequestHandler):
             query = urlparse(self.path).query
             params = parse_qs(query)
             OAuthCallbackHandler.code = params.get('code', [None])[0]
-            self.send_response(200)
-            self.send_header('Content-type', 'text/html')
+            self.send_response(302)
+            self.send_header('Location', 'https://127.0.0.1:8000/ledsup/autenticado/')
             self.end_headers()
-            msg = "<html><body><h1>Autenticacion completada</h1>Ya puedes cerrar esta ventana.</body></html>"
-            self.wfile.write(msg.encode("utf-8"))
         else:
             self.send_response(404)
             self.end_headers()
