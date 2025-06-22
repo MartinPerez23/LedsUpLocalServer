@@ -74,7 +74,7 @@ class AppView(ctk.CTk):
 
         self.controlador_usuario = ControladorUsuario()
         self.controlador_leds = ControladorLEDs()
-
+        
         self.hilo_ws = None
         self.loop = None
         self.ws_stop_event = None
@@ -154,7 +154,7 @@ class AppView(ctk.CTk):
             self.ConnectButton.configure(state="normal")
 
     def reportar_error(self, detalle, contexto):
-        enviar_error_a_la_web(self, detalle, contexto, self)
+        enviar_error_a_la_web(detalle, contexto, self)
 
 
 class DispositivosFrame(ctk.CTkScrollableFrame):
