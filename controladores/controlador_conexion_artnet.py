@@ -1,4 +1,3 @@
-
 import threading
 import time
 import random
@@ -52,10 +51,21 @@ class ConexionArtnet:
                 d.datosAEnviar.clear()
                 for y in range(d.matrizY):
                     for x in range(d.matrizX):
-                        i = (x + d.contador) % len(self.coloresScroll)
+                        if direccion == 'Derecha':
+                            i = (x + d.contador) % len(self.coloresScroll)
+                        elif direccion == 'Izquierda':
+                            i = (x - d.contador) % len(self.coloresScroll)
+                        elif direccion == 'Abajo':
+                            i = (y + d.contador) % len(self.coloresScroll)
+                        elif direccion == 'Arriba':
+                            i = (y - d.contador) % len(self.coloresScroll)
+                        else:
+                            i = (x + d.contador) % len(self.coloresScroll)
+
                         c = self.coloresScroll[i]
                         r, g, b = int(c[1:3], 16), int(c[3:5], 16), int(c[5:7], 16)
                         d.datosAEnviar.extend([r, g, b])
+
                 d.contador = (d.contador + 1) % len(self.coloresScroll)
                 threading.Thread(target=d.enviar_datos, daemon=True).start()
             time.sleep(1 / velocidad)
@@ -72,9 +82,28 @@ class ConexionArtnet:
         while globales.REPETICION:
             for d in self.gestor.obtener_dispositivos():
                 d.datosAEnviar = [r_f, g_f, b_f] * (d.matrizX * d.matrizY)
-                pos = d.contador % (d.matrizX * d.matrizY)
-                d.datosAEnviar[pos*3:pos*3+3] = [r_s, g_s, b_s]
-                d.contador += 1
+                if direccion == 'Derecha':
+                    pos = d.contador % d.matrizX
+                    for y in range(d.matrizY):
+                        idx = y * d.matrizX + pos
+                        d.datosAEnviar[idx*3:idx*3+3] = [r_s, g_s, b_s]
+                elif direccion == 'Izquierda':
+                    pos = d.matrizX - (d.contador % d.matrizX) - 1
+                    for y in range(d.matrizY):
+                        idx = y * d.matrizX + pos
+                        d.datosAEnviar[idx*3:idx*3+3] = [r_s, g_s, b_s]
+                elif direccion == 'Abajo':
+                    pos = d.contador % d.matrizY
+                    for x in range(d.matrizX):
+                        idx = pos * d.matrizX + x
+                        d.datosAEnviar[idx*3:idx*3+3] = [r_s, g_s, b_s]
+                elif direccion == 'Arriba':
+                    pos = d.matrizY - (d.contador % d.matrizY) - 1
+                    for x in range(d.matrizX):
+                        idx = pos * d.matrizX + x
+                        d.datosAEnviar[idx*3:idx*3+3] = [r_s, g_s, b_s]
+
+                d.contador = (d.contador + 1) % (d.matrizX if direccion in ['Derecha', 'Izquierda'] else d.matrizY)
                 threading.Thread(target=d.enviar_datos, daemon=True).start()
             time.sleep(1 / velocidad)
 
