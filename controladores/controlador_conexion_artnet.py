@@ -53,13 +53,13 @@ class ConexionArtnet:
                 d.datosAEnviar.clear()
                 for y in range(d.matrizY):
                     for x in range(d.matrizX):
-                        if direccion == 'Derecha':
+                        if direccion == 'Izquierda':
                             i = (x + d.contador) % len(self.coloresScroll)
-                        elif direccion == 'Izquierda':
+                        elif direccion == 'Derecha':
                             i = (x - d.contador) % len(self.coloresScroll)
-                        elif direccion == 'Abajo':
-                            i = (y + d.contador) % len(self.coloresScroll)
                         elif direccion == 'Arriba':
+                            i = (y + d.contador) % len(self.coloresScroll)
+                        elif direccion == 'Abajo':
                             i = (y - d.contador) % len(self.coloresScroll)
                         else:
                             i = (x + d.contador) % len(self.coloresScroll)
