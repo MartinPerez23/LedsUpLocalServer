@@ -1,6 +1,5 @@
-# modelo/dispositivo_artnet.py
-import time
 from stupidArtnet import StupidArtnet
+
 
 class DispositivoArtnet:
     def __init__(self, ip, universo, patch, matriz_x, matriz_y, orden, tipo_led):
@@ -31,17 +30,17 @@ class DispositivoArtnet:
         if self.patch and self.patch not in ['Sin patch', '']:
             patch = [int(x) for x in self.patch.split(',')]
             for i, pos in enumerate(patch):
-                if i*3+2 >= len(self.datosAEnviar):
+                if i * 3 + 2 >= len(self.datosAEnviar):
                     continue
-                r, g, b = self._reordenar(i)
-                leds[pos*3:pos*3+3] = [r, g, b]
+                r, g, b = self.reordenar(i)
+                leds[pos * 3:pos * 3 + 3] = [r, g, b]
         else:
             leds[:len(datos)] = datos
 
         self.conexionArtnet.set(leds)
 
-    def _reordenar(self, i):
-        r, g, b = self.datosAEnviar[i*3:i*3+3]
+    def reordenar(self, i):
+        r, g, b = self.datosAEnviar[i * 3:i * 3 + 3]
         orden = self.tipoLed
         if orden == 'RGB': return r, g, b
         if orden == 'RBG': return r, b, g

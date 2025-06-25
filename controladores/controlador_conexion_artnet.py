@@ -1,7 +1,9 @@
+import random
 import threading
 import time
-import random
+
 import globales
+
 
 class ConexionArtnet:
     def __init__(self, gestor_dispositivos):
@@ -28,13 +30,13 @@ class ConexionArtnet:
             actual = 0
             while globales.REPETICION:
                 color = self.coloresScroll[actual % len(self.coloresScroll)]
-                self._enviar_color(color)
+                self.enviar_color(color)
                 actual += 1
                 time.sleep(3 / velocidad)
         else:
-            self._enviar_color(color)
+            self.enviar_color(color)
 
-    def _enviar_color(self, color):
+    def enviar_color(self, color):
         r = int(color[1:3], 16)
         g = int(color[3:5], 16)
         b = int(color[5:7], 16)
@@ -86,22 +88,22 @@ class ConexionArtnet:
                     pos = d.contador % d.matrizX
                     for y in range(d.matrizY):
                         idx = y * d.matrizX + pos
-                        d.datosAEnviar[idx*3:idx*3+3] = [r_s, g_s, b_s]
+                        d.datosAEnviar[idx * 3:idx * 3 + 3] = [r_s, g_s, b_s]
                 elif direccion == 'Izquierda':
                     pos = d.matrizX - (d.contador % d.matrizX) - 1
                     for y in range(d.matrizY):
                         idx = y * d.matrizX + pos
-                        d.datosAEnviar[idx*3:idx*3+3] = [r_s, g_s, b_s]
+                        d.datosAEnviar[idx * 3:idx * 3 + 3] = [r_s, g_s, b_s]
                 elif direccion == 'Abajo':
                     pos = d.contador % d.matrizY
                     for x in range(d.matrizX):
                         idx = pos * d.matrizX + x
-                        d.datosAEnviar[idx*3:idx*3+3] = [r_s, g_s, b_s]
+                        d.datosAEnviar[idx * 3:idx * 3 + 3] = [r_s, g_s, b_s]
                 elif direccion == 'Arriba':
                     pos = d.matrizY - (d.contador % d.matrizY) - 1
                     for x in range(d.matrizX):
                         idx = pos * d.matrizX + x
-                        d.datosAEnviar[idx*3:idx*3+3] = [r_s, g_s, b_s]
+                        d.datosAEnviar[idx * 3:idx * 3 + 3] = [r_s, g_s, b_s]
 
                 d.contador = (d.contador + 1) % (d.matrizX if direccion in ['Derecha', 'Izquierda'] else d.matrizY)
                 threading.Thread(target=d.enviar_datos, daemon=True).start()
@@ -120,6 +122,6 @@ class ConexionArtnet:
                 d.datosAEnviar = [r_f, g_f, b_f] * (d.matrizX * d.matrizY)
                 for _ in range(d.matrizX * d.matrizY // 3):
                     idx = random.randint(0, d.matrizX * d.matrizY - 1)
-                    d.datosAEnviar[idx*3:idx*3+3] = [r_s, g_s, b_s]
+                    d.datosAEnviar[idx * 3:idx * 3 + 3] = [r_s, g_s, b_s]
                 threading.Thread(target=d.enviar_datos, daemon=True).start()
             time.sleep(3 / velocidad)

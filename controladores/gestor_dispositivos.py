@@ -1,5 +1,5 @@
-# controladores/gestordispositivos.py
-from modelo.dispositivo_artnet import DispositivoArtnet
+from modelos.modelo_dispositivo_artnet import DispositivoArtnet
+
 
 class GestorDispositivos:
     def __init__(self):
