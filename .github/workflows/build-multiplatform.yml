@@ -1,0 +1,59 @@
+name: Build multiplatform executables
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Python 3.9
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - name: Install PyInstaller
+        run: pip install pyinstaller
+      - name: Build Windows Executable
+        run: pyinstaller --onefile principal.py
+      - uses: actions/upload-artifact@v3
+        with:
+          name: windows-exe
+          path: dist/principal.exe
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Python 3.9
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - name: Install PyInstaller
+        run: pip install pyinstaller
+      - name: Build Linux Executable
+        run: pyinstaller --onefile principal.py
+      - uses: actions/upload-artifact@v3
+        with:
+          name: linux-bin
+          path: dist/principal
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Python 3.9
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - name: Install PyInstaller
+        run: pip install pyinstaller
+      - name: Build macOS Executable
+        run: pyinstaller --onefile principal.py
+      - uses: actions/upload-artifact@v3
+        with:
+          name: macos-bin
+          path: dist/principal
