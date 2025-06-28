@@ -15,12 +15,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
-      - name: Install PyInstaller
-        run: pip install pyinstaller
+      - name: Install dependencies
+        run: pip install -r requirements.txt
       - name: Build Windows Executable
         run: pyinstaller --onefile principal.py
-      - name: Upload Windows Artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: windows-exe
           path: dist/principal.exe
@@ -33,12 +32,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
-      - name: Install PyInstaller
-        run: pip install pyinstaller
+      - name: Install dependencies
+        run: pip install -r requirements.txt
       - name: Build Linux Executable
         run: pyinstaller --onefile principal.py
-      - name: Upload Linux Artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: linux-bin
           path: dist/principal
@@ -51,12 +49,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
-      - name: Install PyInstaller
-        run: pip install pyinstaller
+      - name: Install dependencies
+        run: pip install -r requirements.txt
       - name: Build macOS Executable
         run: pyinstaller --onefile principal.py
-      - name: Upload macOS Artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: macos-bin
           path: dist/principal
