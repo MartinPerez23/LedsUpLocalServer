@@ -19,7 +19,8 @@ jobs:
         run: pip install pyinstaller
       - name: Build Windows Executable
         run: pyinstaller --onefile principal.py
-      - uses: actions/upload-artifact@v3
+      - name: Upload Windows Artifact
+        uses: actions/upload-artifact@v4
         with:
           name: windows-exe
           path: dist/principal.exe
@@ -36,7 +37,8 @@ jobs:
         run: pip install pyinstaller
       - name: Build Linux Executable
         run: pyinstaller --onefile principal.py
-      - uses: actions/upload-artifact@v3
+      - name: Upload Linux Artifact
+        uses: actions/upload-artifact@v4
         with:
           name: linux-bin
           path: dist/principal
@@ -53,7 +55,8 @@ jobs:
         run: pip install pyinstaller
       - name: Build macOS Executable
         run: pyinstaller --onefile principal.py
-      - uses: actions/upload-artifact@v3
+      - name: Upload macOS Artifact
+        uses: actions/upload-artifact@v4
         with:
           name: macos-bin
           path: dist/principal
