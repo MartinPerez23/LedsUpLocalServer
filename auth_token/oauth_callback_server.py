@@ -14,7 +14,7 @@ class OAuthCallbackHandler(http.server.BaseHTTPRequestHandler):
             params = parse_qs(query)
             OAuthCallbackHandler.code = params.get('code', [None])[0]
             self.send_response(302)
-            self.send_header('Location', 'https://ledsupwebserver.onrender.com/ledsup/autenticado/')
+            self.send_header('Location', 'https://127.0.0.1:8000/ledsup/autenticado/')
             self.end_headers()
         else:
             self.send_response(404)

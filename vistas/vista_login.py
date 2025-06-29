@@ -13,7 +13,6 @@ from dotenv import load_dotenv
 
 from auth_token.oauth_callback_server import run_server
 from auth_token.oauth_token_server import TokenManager
-from globales import resource_path
 
 load_dotenv()
 
@@ -40,7 +39,7 @@ def authentication():
 
     auth_code = run_server()
 
-    TokenManager.get_token_with_code(auth_code, code_verifier)
+    TokenManager.get_token_with_code(auth_code,code_verifier)
 
 
 class Login(tk.Tk):
@@ -56,7 +55,7 @@ class Login(tk.Tk):
         self.title_font = tkfont.Font(family="Segoe UI", size=18, weight="bold")
 
         # Logo
-        logo_img = Image.open(resource_path("imagenes/logo.png"))
+        logo_img = Image.open("imagenes/logo.png")
         logo_img = logo_img.resize((160, 60), Image.Resampling.LANCZOS)
         self.logo = ImageTk.PhotoImage(logo_img)
         logo_label = tk.Label(self, image=self.logo, bg="#f5f8fa")
@@ -126,7 +125,7 @@ class VentanaEspera(tk.Toplevel):
         self.label = tk.Label(self, bg="#f5f8fa")
         self.label.pack(padx=10, pady=10)
         self.frames = []
-        self.cargar_gif(resource_path("imagenes/LedLogin.gif"))
+        self.cargar_gif("imagenes/LedLogin.gif")
         self.indice = 0
         self.reproducir()
 

@@ -1,8 +1,4 @@
 import customtkinter as ctk
-from PIL import Image
-
-from globales import resource_path
-
 
 class PopupMensaje(ctk.CTkToplevel):
     def __init__(self, parent, mensaje, is_error):
@@ -17,12 +13,11 @@ class PopupMensaje(ctk.CTkToplevel):
         self.attributes("-topmost", True)
 
         try:
+            from PIL import Image
             if is_error:
-                ruta = resource_path("imagenes/error.png")
+                img = ctk.CTkImage(Image.open("imagenes/error.png"), size=(32, 32))
             else:
-                ruta = resource_path("imagenes/informacion.png")
-
-            img = ctk.CTkImage(Image.open(ruta), size=(32, 32))
+                img = ctk.CTkImage(Image.open("imagenes/informacion.png"), size=(32, 32))
             icono = ctk.CTkLabel(self, image=img, text="")
             icono.pack(pady=(10, 0))
         except Exception:
