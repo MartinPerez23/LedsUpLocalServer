@@ -2,7 +2,8 @@ import threading
 import time
 
 import globales
-from conexiones import conexion_artnet
+from controladores.controlador_conexion_artnet import ConexionArtnet
+from controladores.gestor_dispositivos import GestorDispositivos
 from modelos.modelo_leds import ModeloLEDs
 
 
@@ -12,69 +13,53 @@ def detener_theads_viejos():
     globales.REPETICION = True
 
 
+def formatear_lista(lista_json):
+    lista = []
+    for i in range(0, len(lista_json), 8):
+        orden_map = {
+            'Arriba-Izquierda': 0, 'Arriba': 1, 'Arriba-Derecha': 2,
+            'Izquierda': 3, 'Centro': 4, 'Derecha': 5,
+            'Abajo-Izquierda': 6, 'Abajo': 7, 'Abajo-Derecha': 8
+        }
+        lista.append({
+            'ip': lista_json[i],
+            'universo': int(lista_json[i + 1]),
+            'matriz_x': int(lista_json[i + 2]),
+            'matriz_y': int(lista_json[i + 3]),
+            'patch': lista_json[i + 4],
+            'orden': orden_map.get(lista_json[i + 5], 4),
+            'tipo_led': lista_json[i + 6],
+            'nombre': lista_json[i + 7],
+        })
+    return lista
+
+
 class ControladorLEDs:
     def __init__(self):
-        self.artnet = conexion_artnet.ConexionArtnet()
         self.modelo = ModeloLEDs()
+        self.gestor = GestorDispositivos()
+        self.conexion = ConexionArtnet(self.gestor)
 
     def procesar_comando(self, data_json, app_view):
-        self.artnet.dispositivosActivos.clear()
+        detener_theads_viejos()
+
+        lista_dispositivos = formatear_lista(data_json['lista'])
+        self.gestor.actualizar_lista(lista_dispositivos)
+
         self.modelo.clear_estado_leds()
-
-        accion = data_json['accion']
-        dispositivos_actuales = data_json['lista']
-        numero_dispositivos = int(len(dispositivos_actuales) / 7)
-
-        for repeticion in range(numero_dispositivos):
-            numero = repeticion * 8
-            ip = dispositivos_actuales[numero]
-            universo = int(dispositivos_actuales[numero + 1])
-            matriz_x = int(dispositivos_actuales[numero + 2])
-            matriz_y = int(dispositivos_actuales[numero + 3])
-            patch = dispositivos_actuales[numero + 4]
-            orden = dispositivos_actuales[numero + 5]
-            tipo_led = dispositivos_actuales[numero + 6]
-            nombre_dispositivo = dispositivos_actuales[numero + 7]
-
-            orden_map = {
-                'Arriba-Izquierda': 0, 'Arriba': 1, 'Arriba-Derecha': 2,
-                'Izquierda': 3, 'Centro': 4, 'Derecha': 5,
-                'Abajo-Izquierda': 6, 'Abajo': 7, 'Abajo-Derecha': 8
-            }
-            orden = orden_map.get(orden, 4)
-
-            self.artnet.buscar_o_agregar_dispositivo(ip, universo, patch, matriz_x, matriz_y, orden, tipo_led)
-            self.modelo.add_estado_leds(nombre_dispositivo, accion)
+        for d in lista_dispositivos:
+            self.modelo.add_estado_leds(d['nombre'], data_json['accion'])
 
         app_view.dispositivosFrame.actualizar_dispositivos(self.modelo.get_estado_leds())
 
-        self.artnet.dispositivosActivos = sorted(
-            self.artnet.dispositivosActivos, key=lambda d: d.orden
-        )
-
-        self.artnet.print_cantidad_dispositivos_activos()
-        self.artnet.print_dispositivos_activos()
-
+        accion = data_json['accion']
         if accion == 'probar':
-            detener_theads_viejos()
-            self.artnet.probar_dispositivo()
-
+            self.conexion.efecto_probar()
         elif accion == 'color':
-            detener_theads_viejos()
-            t = threading.Thread(target=self.artnet.color, args=(data_json,), daemon=True)
-            t.start()
-
+            threading.Thread(target=self.conexion.efecto_color, args=(data_json,), daemon=True).start()
         elif accion == 'scroll':
-            detener_theads_viejos()
-            t = threading.Thread(target=self.artnet.scroll, args=(data_json,), daemon=True)
-            t.start()
-
+            threading.Thread(target=self.conexion.efecto_scroll, args=(data_json,), daemon=True).start()
         elif accion == 'scan':
-            detener_theads_viejos()
-            t = threading.Thread(target=self.artnet.scan, args=(data_json,), daemon=True)
-            t.start()
-
+            threading.Thread(target=self.conexion.efecto_scan, args=(data_json,), daemon=True).start()
         elif accion == 'estrellas':
-            detener_theads_viejos()
-            t = threading.Thread(target=self.artnet.estrellas, args=(data_json,), daemon=True)
-            t.start()
+            threading.Thread(target=self.conexion.efecto_estrellas, args=(data_json,), daemon=True).start()
