@@ -22,7 +22,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: windows-exe
-          path: dist/ledsup.exe
+          path: dist/LedsUp.exe
 
   build-linux:
     runs-on: ubuntu-latest
@@ -39,7 +39,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: linux-bin
-          path: dist/ledsup
+          path: dist/LedsUp
 
   build-macos:
     runs-on: macos-latest
@@ -56,4 +56,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: macos-bin
-          path: dist/ledsup
+          path: dist/LedsUp
