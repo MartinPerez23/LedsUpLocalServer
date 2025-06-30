@@ -55,5 +55,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='LedsUp'
+    name='LedsUp_dist'
 )
