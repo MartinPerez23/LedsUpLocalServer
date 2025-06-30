@@ -2,6 +2,7 @@ import sys
 from PyInstaller.utils.hooks import collect_submodules
 
 block_cipher = None
+icon_file = 'imagenes/icono.ico' if sys.platform.startswith('win') else None
 
 a = Analysis(
     ['principal.py'],
@@ -39,7 +40,7 @@ exe = EXE(
     strip=False,
     upx=True,
     console=False,
-    icon='imagenes/icono.ico',
+    icon=icon_file,
     disable_windowed_traceback=False,
     target_arch=None,
     codesign_identity=None,
