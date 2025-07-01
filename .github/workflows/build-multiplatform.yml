@@ -18,7 +18,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Build Windows Executable
-        run: pyinstaller ledsup.spec
+        run: pyinstaller --noconfirm --clean ledsup.spec
       - uses: actions/upload-artifact@v4
         with:
           name: windows-exe
@@ -39,7 +39,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: linux-bin
-          path: dist/LedsUp
+          path: dist/LedsUp_dist
 
   build-macos:
     runs-on: macos-latest
@@ -56,4 +56,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: macos-bin
-          path: dist/LedsUp
+          path: dist/LedsUp_dist
