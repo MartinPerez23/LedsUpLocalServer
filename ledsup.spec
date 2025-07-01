@@ -38,8 +38,8 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
-    console=False,
+    upx=False,
+    console=True,
     icon=icon_file,
     disable_windowed_traceback=False,
     target_arch=None,
@@ -53,7 +53,7 @@ coll = COLLECT(
     a.zipfiles,
     a.datas,
     strip=False,
-    upx=True,
+    upx=False,
     upx_exclude=[],
     name='LedsUp_dist'
 )
