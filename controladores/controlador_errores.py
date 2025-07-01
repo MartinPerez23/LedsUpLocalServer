@@ -5,12 +5,11 @@ from vistas.vista_popup_mensaje import PopupMensaje
 
 def enviar_error_a_la_web(detalle, contexto, vista):
     try:
-        if not globales.AUTH_TOKEN_USUARIO:
+        if globales.AUTH_TOKEN_USUARIO is None:
             PopupMensaje(vista,
                          'No se puede enviar el error, no hay usuario autenticado. Intente ingregar nuevamente',
                          True)
             return
-
 
         ModeloError.enviar_error(detalle, contexto)
         PopupMensaje(vista,

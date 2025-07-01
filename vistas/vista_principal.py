@@ -4,13 +4,16 @@ import os
 import queue
 import ssl
 import threading
+
 import customtkinter as ctk
 import websockets
+
+from auth_token.oauth_token_server import TokenManager
 from controladores.controlador_errores import enviar_error_a_la_web
 from controladores.controlador_leds import ControladorLEDs, detener_theads_viejos
 from controladores.controlador_usuario import ControladorUsuario
+from globales import resource_path
 from vistas.vista_popup_mensaje import PopupMensaje
-from auth_token.oauth_token_server import TokenManager
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("dark-blue")
@@ -31,6 +34,7 @@ async def escuchar_websocket(app_view, stop_event: asyncio.Event):
     try:
         async with websockets.connect(os.environ.get('WS_URI'), extra_headers=header, ssl=ssl_context) as ws:
             websocket = ws
+            print("conectado a websocket")
             app_view.set_status_entry("Conectado", "green")
             app_view.ConnectButton.configure(text="Desconectar", state="normal")
 
@@ -41,13 +45,16 @@ async def escuchar_websocket(app_view, stop_event: asyncio.Event):
                     comando = data.get('data')
 
                     if comando:
+                        print("mensaje recibido: " + comando)
                         comando_queue.put(comando)
                         await websocket.send(json.dumps({"estado": "ok"}))
                     else:
-                        PopupMensaje(app_view, "Se recibió un comando inesperado desde la web, vuelva a intentarlo", True)
+                        PopupMensaje(app_view, "Se recibió un comando inesperado desde la web, vuelva a intentarlo",
+                                     True)
                         app_view.reportar_error("Formato inesperado:" + str(data), 'Al recibir el comando desde la web')
 
                 except asyncio.TimeoutError:
+                    print("No se recibio ninguna respuesta")
                     continue
 
     except Exception as e:
@@ -79,6 +86,7 @@ class AppView(ctk.CTk):
         self.ws_stop_event = None
 
         self.title("Led's up")
+        self.iconbitmap(resource_path("imagenes/icono.ico"))
         self.geometry("600x400")
         self.resizable(False, False)
 
@@ -132,7 +140,8 @@ class AppView(ctk.CTk):
             self.ws_stop_event = asyncio.Event()
             self.loop = asyncio.new_event_loop()
 
-            hilo_procesador = threading.Thread(target=procesar_comandos_thread, args=(self.controlador_leds, self), daemon=True)
+            hilo_procesador = threading.Thread(target=procesar_comandos_thread, args=(self.controlador_leds, self),
+                                               daemon=True)
             hilo_procesador.start()
 
             def iniciar_websocket():

@@ -48,6 +48,7 @@ class Login(tk.Tk):
         super().__init__()
         self.code_verifier = None
         self.title("Server LEDS UP")
+        self.iconbitmap(resource_path("imagenes/icono.ico"))
         self.geometry("350x320")
         self.configure(bg="#f5f8fa")
         self.resizable(False, False)
@@ -114,6 +115,7 @@ class VentanaEspera(tk.Toplevel):
     def __init__(self, master=None):
         super().__init__(master)
         self.title("Server LEDS UP")
+        self.iconbitmap(resource_path("imagenes/icono.ico"))
         self.geometry("250x220")
         self.configure(bg="#f5f8fa")
         self.resizable(False, False)
