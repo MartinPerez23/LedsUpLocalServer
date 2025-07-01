@@ -14,7 +14,7 @@ class ModeloUsuario:
         }
 
         try:
-            response = requests.get(os.environ.get("USER_INFO_URL"), headers=headers, verify=False)
+            response = requests.get(os.environ.get("USER_INFO_URL"), headers=headers)
             if response.status_code != 200:
                 raise Exception('Error al obtener información del usuario')
 
