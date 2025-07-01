@@ -7,54 +7,69 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+  build-windows:
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
-
       - name: Setup Python 3.9
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
-
       - name: Install dependencies
         run: pip install -r requirements.txt
-
-      - name: Build Executable
-        run: |
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            pyinstaller --noconfirm --clean ledsup.spec
-          elif [[ "$RUNNER_OS" == "Linux" ]]; then
-            pyinstaller --noconfirm --clean ledsup.spec
-          elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            pyinstaller --noconfirm --clean ledsup.spec
-          fi
-
-      - name: Rename artifact
-        run: |
-          mkdir upload
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            mv dist/LedsUp.exe upload/LedsUp-windows.exe
-          elif [[ "$RUNNER_OS" == "Linux" ]]; then
-            mv dist/LedsUp upload/LedsUp-linux
-          elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            mv dist/LedsUp upload/LedsUp-macos
-          fi
-
-      - name: Upload artifacts to GitHub Actions
-        uses: actions/upload-artifact@v4
+      - name: Build Windows Executable
+        run: pyinstaller --noconfirm --clean ledsup.spec
+      - name: Rename output
+        run: Rename-Item -Path dist/LedsUp.exe -NewName LedsUp-windows.exe
+      - uses: actions/upload-artifact@v4
         with:
-          name: ledsup-${{ runner.os }}
-          path: upload/*
+          name: ledsup-windows
+          path: dist/LedsUp-windows.exe
 
-  release:
-    needs: build
+  build-linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v3
+      - name: Setup Python 3.9
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Build Linux Executable
+        run: pyinstaller --noconfirm --clean ledsup.spec
+      - name: Rename output
+        run: mv dist/LedsUp LedsUp-linux
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ledsup-linux
+          path: LedsUp-linux
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Python 3.9
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Build macOS Executable
+        run: pyinstaller --noconfirm --clean ledsup.spec
+      - name: Rename output
+        run: mv dist/LedsUp LedsUp-macos
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ledsup-macos
+          path: LedsUp-macos
+
+  release:
+    needs: [build-windows, build-linux, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
         with:
           path: artifacts
 
@@ -66,7 +81,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: lastest
+          tag_name: descargas
           name: Última versión compilada
           draft: false
           prerelease: false
