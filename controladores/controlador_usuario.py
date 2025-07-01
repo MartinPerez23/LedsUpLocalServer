@@ -14,8 +14,8 @@ class ControladorUsuario:
         try:
             self.user_name = self.modelo_usuario.obtener_nombre_usuario()
         except Exception as e:
+            print("error: " + str(e))
             PopupMensaje(None, 'Error reportado, espera a ser contactado por el equipo de soporte', True)
-
 
     def get_user_name(self):
         return self.user_name
