@@ -18,8 +18,6 @@ from vistas.vista_popup_mensaje import PopupMensaje
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("dark-blue")
 
-appWidth, appHeight = 600, 400
-
 comando_queue = queue.Queue()
 ssl_context = ssl.create_default_context()
 
