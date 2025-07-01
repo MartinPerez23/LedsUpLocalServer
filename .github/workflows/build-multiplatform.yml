@@ -81,7 +81,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: descargas
+          tag_name: lastest
           name: Última versión compilada
           draft: false
           prerelease: false
