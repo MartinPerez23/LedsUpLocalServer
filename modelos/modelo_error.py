@@ -1,12 +1,13 @@
 import os
 
 import requests
+
 from auth_token.oauth_token_server import TokenManager
+
 
 class ModeloError:
 
     def enviar_error(self, detalle, contexto):
-
         token = TokenManager.get_token()
 
         headers = {
@@ -24,7 +25,6 @@ class ModeloError:
             os.environ.get('ERROR_URL'),
             json=error_data,
             headers=headers,
-            verify=False
         )
 
         if response.status_code != 201:

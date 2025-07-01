@@ -18,7 +18,7 @@ ctk.set_default_color_theme("dark-blue")
 appWidth, appHeight = 600, 400
 
 comando_queue = queue.Queue()
-ssl_context = ssl._create_unverified_context()
+ssl_context = ssl.create_default_context()
 
 
 async def escuchar_websocket(app_view, stop_event: asyncio.Event):
@@ -31,7 +31,6 @@ async def escuchar_websocket(app_view, stop_event: asyncio.Event):
     try:
         async with websockets.connect(os.environ.get('WS_URI'), extra_headers=header, ssl=ssl_context) as ws:
             websocket = ws
-            # ✅ Confirmar conexión exitosa
             app_view.set_status_entry("Conectado", "green")
             app_view.ConnectButton.configure(text="Desconectar", state="normal")
 
@@ -74,7 +73,7 @@ class AppView(ctk.CTk):
 
         self.controlador_usuario = ControladorUsuario()
         self.controlador_leds = ControladorLEDs()
-        
+
         self.hilo_ws = None
         self.loop = None
         self.ws_stop_event = None
