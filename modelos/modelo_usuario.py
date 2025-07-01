@@ -22,4 +22,4 @@ class ModeloUsuario:
             return data.get('user_name')
 
         except requests.RequestException as e:
-            raise Exception(f'Error de red: {str(e)}')
+            raise Exception('Error de red', e)
