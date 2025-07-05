@@ -1,0 +1,90 @@
+name: Build multiplatform executables
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Python 3.9
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Build Windows Executable
+        run: pyinstaller --noconfirm --clean ledsup.spec
+      - name: Rename output
+        run: Rename-Item -Path dist/LedsUp.exe -NewName LedsUp-windows.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ledsup-windows
+          path: dist/LedsUp-windows.exe
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Python 3.9
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Build Linux Executable
+        run: pyinstaller --noconfirm --clean ledsup.spec
+      - name: Rename output
+        run: mv dist/LedsUp LedsUp-linux
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ledsup-linux
+          path: LedsUp-linux
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Python 3.9
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Build macOS Executable
+        run: pyinstaller --noconfirm --clean ledsup.spec
+      - name: Rename output
+        run: mv dist/LedsUp LedsUp-macos
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ledsup-macos
+          path: LedsUp-macos
+
+  release:
+    needs: [build-windows, build-linux, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release files
+        run: |
+          mkdir release
+          find artifacts -type f -name "LedsUp-*" -exec cp {} release/ \;
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: lastest
+          name: Última versión compilada
+          draft: false
+          prerelease: false
+          files: release/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}

@@ -4,21 +4,24 @@ import os
 import queue
 import ssl
 import threading
+import traceback
+
 import customtkinter as ctk
 import websockets
-from controladores.controlador_errores import enviar_error_a_la_web
+
+from auth_token.oauth_token_server import TokenManager
+from controladores.controlador_errores import ControladorErrores
 from controladores.controlador_leds import ControladorLEDs, detener_theads_viejos
 from controladores.controlador_usuario import ControladorUsuario
+from globales import resource_path
+from modelos.modelo_error import ModeloError
 from vistas.vista_popup_mensaje import PopupMensaje
-from auth_token.oauth_token_server import TokenManager
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("dark-blue")
 
-appWidth, appHeight = 600, 400
-
 comando_queue = queue.Queue()
-ssl_context = ssl._create_unverified_context()
+ssl_context = ssl.create_default_context()
 
 
 async def escuchar_websocket(app_view, stop_event: asyncio.Event):
@@ -31,7 +34,7 @@ async def escuchar_websocket(app_view, stop_event: asyncio.Event):
     try:
         async with websockets.connect(os.environ.get('WS_URI'), extra_headers=header, ssl=ssl_context) as ws:
             websocket = ws
-            # ✅ Confirmar conexión exitosa
+            print("conectado a websocket")
             app_view.set_status_entry("Conectado", "green")
             app_view.ConnectButton.configure(text="Desconectar", state="normal")
 
@@ -42,17 +45,23 @@ async def escuchar_websocket(app_view, stop_event: asyncio.Event):
                     comando = data.get('data')
 
                     if comando:
+                        print("mensaje recibido")
                         comando_queue.put(comando)
                         await websocket.send(json.dumps({"estado": "ok"}))
                     else:
-                        PopupMensaje(app_view, "Se recibió un comando inesperado desde la web, vuelva a intentarlo", True)
+                        PopupMensaje(app_view, "Se recibió un comando inesperado desde la web, vuelva a intentarlo",
+                                     True)
                         app_view.reportar_error("Formato inesperado:" + str(data), 'Al recibir el comando desde la web')
 
                 except asyncio.TimeoutError:
+                    print("No se recibio ninguna respuesta")
                     continue
 
     except Exception as e:
-        app_view.reportar_error('Al recibir el comando desde la web', str(e))
+        print("Al recibir el comando desde la web: ", e)
+        traceback.print_exc()
+
+        app_view.reportar_error('Al recibir el comando desde la web', traceback.print_exc())
         app_view.set_status_entry("Desconectado", "red")
         app_view.ConnectButton.configure(text="Conectar", state="normal")
     finally:
@@ -74,12 +83,14 @@ class AppView(ctk.CTk):
 
         self.controlador_usuario = ControladorUsuario()
         self.controlador_leds = ControladorLEDs()
-        
+        self.controlador_errores = ControladorErrores(self)
+
         self.hilo_ws = None
         self.loop = None
         self.ws_stop_event = None
 
         self.title("Led's up")
+        self.iconbitmap(resource_path("imagenes/icono.ico"))
         self.geometry("600x400")
         self.resizable(False, False)
 
@@ -133,7 +144,8 @@ class AppView(ctk.CTk):
             self.ws_stop_event = asyncio.Event()
             self.loop = asyncio.new_event_loop()
 
-            hilo_procesador = threading.Thread(target=procesar_comandos_thread, args=(self.controlador_leds, self), daemon=True)
+            hilo_procesador = threading.Thread(target=procesar_comandos_thread, args=(self.controlador_leds, self),
+                                               daemon=True)
             hilo_procesador.start()
 
             def iniciar_websocket():
@@ -154,7 +166,7 @@ class AppView(ctk.CTk):
             self.ConnectButton.configure(state="normal")
 
     def reportar_error(self, detalle, contexto):
-        enviar_error_a_la_web(detalle, contexto, self)
+        self.controlador_errores.enviar_error(modelo_error=ModeloError(detalle, contexto))
 
 
 class DispositivosFrame(ctk.CTkScrollableFrame):

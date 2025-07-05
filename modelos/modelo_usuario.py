@@ -14,7 +14,7 @@ class ModeloUsuario:
         }
 
         try:
-            response = requests.get(os.environ.get("USER_INFO_URL"), headers=headers, verify=False)
+            response = requests.get(os.environ.get("USER_INFO_URL"), headers=headers)
             if response.status_code != 200:
                 raise Exception('Error al obtener información del usuario')
 
@@ -22,4 +22,4 @@ class ModeloUsuario:
             return data.get('user_name')
 
         except requests.RequestException as e:
-            raise Exception(f'Error de red: {str(e)}')
+            raise Exception('Error de red', e)

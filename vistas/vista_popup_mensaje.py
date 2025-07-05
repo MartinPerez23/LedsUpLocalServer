@@ -3,7 +3,12 @@ import customtkinter as ctk
 class PopupMensaje(ctk.CTkToplevel):
     def __init__(self, parent, mensaje, is_error):
         super().__init__(parent if parent else None)
-        self.title("Error")
+        if is_error:
+            self.title("Error")
+        else:
+            self.title("Info")
+
+        self.iconbitmap(resource_path("imagenes/icono.ico"))
         self.resizable(False, False)
 
         if parent:
