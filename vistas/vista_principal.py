@@ -38,6 +38,8 @@ async def escuchar_websocket(app_view, stop_event: asyncio.Event):
             app_view.set_status_entry("Conectado", "green")
             app_view.ConnectButton.configure(text="Desconectar", state="normal")
 
+            asyncio.create_task(enviar_heartbeat(ws, stop_event, app_view))
+
             while not stop_event.is_set():
                 try:
                     mensaje = await asyncio.wait_for(websocket.recv(), timeout=1.0)
@@ -76,6 +78,17 @@ def procesar_comandos_thread(controlador: ControladorLEDs, app_view):
             break
         controlador.procesar_comando(comando, app_view)
 
+async def enviar_heartbeat(ws, stop_event, app_view):
+    try:
+        while not stop_event.is_set():
+            await asyncio.sleep(10)  # cada 10 segundos
+            await ws.send(json.dumps({"type": "ping"}))
+    except Exception as e:
+        print("Al enviar heartbeat:", e)
+        traceback.print_exc()
+        app_view.reportar_error("Al enviar heartbeat", traceback.format_exc())
+        app_view.set_status_entry("Desconectado", "red")
+        app_view.ConnectButton.configure(text="Conectar", state="normal")
 
 class AppView(ctk.CTk):
     def __init__(self, *args, **kwargs):
