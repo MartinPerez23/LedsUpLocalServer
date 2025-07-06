@@ -2,6 +2,7 @@ import os
 import time
 
 import requests
+from cffi.verifier import Verifier
 
 import globales
 
@@ -49,6 +50,6 @@ class TokenManager:
             "client_secret": os.environ.get('SECRET'),
             "code_verifier": code_verifier,
         }
-        response = requests.post(os.environ.get('TOKEN_URL'), data=data, headers=headers)
+        response = requests.post(os.environ.get('TOKEN_URL'), data=data, headers=headers, verify=False)
         response.raise_for_status()
         TokenManager.save_response(response)

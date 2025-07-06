@@ -32,7 +32,8 @@ class ControladorErrores:
             response = requests.post(
                 os.environ.get('ERROR_URL'),
                 json=modelo_error.to_dict(),
-                headers=headers
+                headers=headers,
+                verify=False
             )
 
             if response.status_code != 201:
