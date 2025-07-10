@@ -19,11 +19,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
-          pip install nuitka==2.2.3
+          pip install -r requirements.txt          
 
       - name: Build Windows Executable with Nuitka
-        run: python -m nuitka --standalone --enable-plugin=tk-inter --assume-yes-for-downloads --windows-disable-console --windows-icon-from-ico=imagenes/icono.ico --output-dir=build principal.py
+        run: python -m nuitka --standalone --enable-plugin=tk-inter --assume-yes-for-downloads --windows-icon-from-ico=imagenes/icono.ico --output-dir=build principal.py
 
       - name: Renombrar binario
         run: |
