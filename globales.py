@@ -1,13 +1,11 @@
 import os
-import sys
-
 
 def resource_path(relative_path):
-    if getattr(sys, 'nuitka_onefile_compression', False):
+    """Obtiene la ruta absoluta al recurso, ya sea en desarrollo o ejecutable."""
+    try:
         base_path = os.path.dirname(os.path.abspath(__file__))
-    else:
-        base_path = os.path.abspath(".")
-
+    except NameError:
+        base_path = os.getcwd()
     return os.path.join(base_path, relative_path)
 
 
