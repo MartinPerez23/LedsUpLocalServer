@@ -22,16 +22,24 @@ jobs:
           pip install -r requirements.txt
           pip install nuitka
 
+      - name: Descargar depends.exe requerido por Nuitka
+        run: |
+          mkdir $env:LOCALAPPDATA\Nuitka\Nuitka\Cache\downloads\depends\x86_64
+          Invoke-WebRequest -Uri https://github.com/Nuitka/Nuitka/files/7604352/depends.exe.zip -OutFile depends.zip
+          Expand-Archive -Path depends.zip -DestinationPath $env:LOCALAPPDATA\Nuitka\Nuitka\Cache\downloads\depends\x86_64
+
       - name: Build Windows Executable with Nuitka
         run: python -m nuitka --standalone --enable-plugin=tk-inter --windows-disable-console --windows-icon-from-ico=imagenes/icono.ico --output-dir=build principal.py
 
-      - name: Rename output
-        run: Rename-Item -Path build\principal.dist\principal.exe -NewName LedsUp-windows.exe
+      - name: Renombrar binario
+        run: |
+          $BIN = Get-ChildItem -Path build/principal.dist -Filter *.exe | Select-Object -First 1
+          Rename-Item -Path $BIN.FullName -NewName LedsUp-windows.exe
 
       - uses: actions/upload-artifact@v4
         with:
           name: ledsup-windows
-          path: build/LedsUp-windows.exe
+          path: build/principal.dist/LedsUp-windows.exe
 
   build-linux:
     runs-on: ubuntu-latest
@@ -45,8 +53,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc
+          sudo apt-get update && sudo apt-get install -y gcc
           pip install -r requirements.txt
           pip install nuitka
 
@@ -58,14 +65,11 @@ jobs:
             --output-dir=build \
             principal.py
 
-      - name: Verificar contenido del build
-        run: ls -R build
-
       - name: Renombrar binario
         run: |
           BIN=$(find build/principal.dist -type f -executable | head -n 1)
           echo "Archivo encontrado: $BIN"
-          mv \"$BIN\" LedsUp-linux
+          mv $BIN LedsUp-linux
 
       - uses: actions/upload-artifact@v4
         with:
@@ -94,10 +98,13 @@ jobs:
             --standalone \
             --enable-plugin=tk-inter \
             --output-dir=build \
-            principal.py || true
+            principal.py
 
-      - name: Verificar contenido del build
-        run: ls -R build || echo "build folder not found"
+      - name: Renombrar binario
+        run: |
+          BIN=$(find build/principal.dist -type f -executable | head -n 1)
+          echo "Archivo encontrado: $BIN"
+          mv $BIN LedsUp-macos
 
       - uses: actions/upload-artifact@v4
         with:
