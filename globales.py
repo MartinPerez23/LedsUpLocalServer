@@ -1,15 +1,14 @@
 import os
 import sys
 
+
 def resource_path(relative_path):
-    if hasattr(sys, 'frozen') or getattr(sys, 'nuitka_compiled', False):
-        base_path = os.path.dirname(sys.executable)
+    if getattr(sys, 'nuitka_onefile_compression', False):
+        base_path = os.path.dirname(os.path.abspath(__file__))
     else:
         base_path = os.path.abspath(".")
 
-    full_path = os.path.join(base_path, relative_path)
-    print(f"DEBUG resource_path: {full_path}")
-    return full_path
+    return os.path.join(base_path, relative_path)
 
 
 REPETICION = True
