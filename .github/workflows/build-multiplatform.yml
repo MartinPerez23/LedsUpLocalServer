@@ -28,8 +28,14 @@ jobs:
 
       - name: Renombrar binario
         run: |
-          $BIN = Get-ChildItem -Path build/principal.dist -Filter *.exe | Select-Object -First 1
-          Rename-Item -Path $BIN.FullName -NewName LedsUp-windows.exe
+          $BIN = Get-ChildItem -Path build -Filter *.exe | Select-Object -First 1
+
+          if ($BIN) {
+            Rename-Item -Path $BIN.FullName -NewName LedsUp-windows.exe
+          } else {
+            Write-Error "No se encontró ningún ejecutable .exe en build"
+            exit 1
+          }
 
       - uses: actions/upload-artifact@v4
         with:
