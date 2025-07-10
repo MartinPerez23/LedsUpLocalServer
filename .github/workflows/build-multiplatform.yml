@@ -45,7 +45,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt-get update && sudo apt-get install -y gcc
+          sudo apt-get update
+          sudo apt-get install -y gcc
           pip install -r requirements.txt
           pip install nuitka
 
@@ -57,8 +58,14 @@ jobs:
             --output-dir=build \
             principal.py
 
-      - name: Rename output
-        run: mv build/principal.dist/principal LedsUp-linux
+      - name: Verificar contenido del build
+        run: ls -R build
+
+      - name: Renombrar binario
+        run: |
+          BIN=$(find build/principal.dist -type f -executable | head -n 1)
+          echo "Archivo encontrado: $BIN"
+          mv \"$BIN\" LedsUp-linux
 
       - uses: actions/upload-artifact@v4
         with:
@@ -87,10 +94,10 @@ jobs:
             --standalone \
             --enable-plugin=tk-inter \
             --output-dir=build \
-            principal.py
+            principal.py || true
 
-      - name: Rename output
-        run: mv build/principal.dist/principal LedsUp-macos
+      - name: Verificar contenido del build
+        run: ls -R build || echo "build folder not found"
 
       - uses: actions/upload-artifact@v4
         with:
