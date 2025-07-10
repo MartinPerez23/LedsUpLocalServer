@@ -40,7 +40,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: ledsup-windows
-          path: build/principal.dist/LedsUp-windows.exe
+          path: build/LedsUp-windows.exe
 
   build-linux:
     runs-on: ubuntu-latest
