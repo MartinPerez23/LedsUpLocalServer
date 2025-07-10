@@ -22,14 +22,8 @@ jobs:
           pip install -r requirements.txt
           pip install nuitka
 
-      - name: Descargar depends.exe requerido por Nuitka
-        run: |
-          mkdir $env:LOCALAPPDATA\Nuitka\Nuitka\Cache\downloads\depends\x86_64
-          Invoke-WebRequest -Uri https://github.com/Nuitka/Nuitka/files/7604352/depends.exe.zip -OutFile depends.zip
-          Expand-Archive -Path depends.zip -DestinationPath $env:LOCALAPPDATA\Nuitka\Nuitka\Cache\downloads\depends\x86_64
-
       - name: Build Windows Executable with Nuitka
-        run: python -m nuitka --standalone --enable-plugin=tk-inter --windows-disable-console --windows-icon-from-ico=imagenes/icono.ico --output-dir=build principal.py
+        run: python -m nuitka --standalone --enable-plugin=tk-inter --accept-downloads --windows-disable-console --windows-icon-from-ico=imagenes/icono.ico --output-dir=build principal.py
 
       - name: Renombrar binario
         run: |
@@ -102,7 +96,7 @@ jobs:
 
       - name: Renombrar binario
         run: |
-          BIN=$(find build/principal.dist -type f -executable | head -n 1)
+          BIN=$(find build/principal.dist -type f -name 'principal' | head -n 1)
           echo "Archivo encontrado: $BIN"
           mv $BIN LedsUp-macos
 
