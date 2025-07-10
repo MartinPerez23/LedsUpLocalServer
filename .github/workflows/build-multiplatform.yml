@@ -62,19 +62,7 @@ jobs:
 
       - name: Build Linux Executable with Nuitka (Onefile)
         run: |
-          python3 -m nuitka \
-            --standalone \
-            --onefile \
-            --enable-plugin=tk-inter \
-            --assume-yes-for-downloads \
-            --include-data-file=imagenes/error.png=imagenes/error.png \
-            --include-data-file=imagenes/icono.ico=imagenes/icono.ico \
-            --include-data-file=imagenes/LedLogin.gif=imagenes/LedLogin.gif \
-            --include-data-file=imagenes/logo.png=imagenes/logo.png \
-            --include-data-file=imagenes/informacion.png=imagenes/informacion.png \
-            --include-data-file=.env=.env \
-            --output-dir=build \
-            principal.py
+          python3 -m nuitka --standalone --onefile --enable-plugin=tk-inter --assume-yes-for-downloads --include-package=websockets --include-package=customtkinter --include-package=stupidArtnet --include-package=PIL --include-package=dotenv --include-package=requests --include-data-file=imagenes/error.png=imagenes/error.png --include-data-file=imagenes/icono.ico=imagenes/icono.ico --include-data-file=imagenes/LedLogin.gif=imagenes/LedLogin.gif --include-data-file=imagenes/logo.png=imagenes/logo.png --include-data-file=imagenes/informacion.png=imagenes/informacion.png --include-data-file=.env=.env --output-dir=build principal.py
 
       - name: Renombrar binario
         run: |
@@ -111,19 +99,7 @@ jobs:
 
       - name: Build macOS Executable with Nuitka (Onefile)
         run: |
-          python3 -m nuitka \
-            --standalone \
-            --onefile \
-            --enable-plugin=tk-inter \
-            --assume-yes-for-downloads \
-            --include-data-file=imagenes/error.png=imagenes/error.png \
-            --include-data-file=imagenes/icono.ico=imagenes/icono.ico \
-            --include-data-file=imagenes/LedLogin.gif=imagenes/LedLogin.gif \
-            --include-data-file=imagenes/logo.png=imagenes/logo.png \
-            --include-data-file=imagenes/informacion.png=imagenes/informacion.png \
-            --include-data-file=.env=.env \
-            --output-dir=build \
-            principal.py
+          python3 -m nuitka --standalone --onefile --enable-plugin=tk-inter --assume-yes-for-downloads --include-package=websockets --include-package=customtkinter --include-package=stupidArtnet --include-package=PIL --include-package=dotenv --include-package=requests --include-data-file=imagenes/error.png=imagenes/error.png --include-data-file=imagenes/icono.ico=imagenes/icono.ico --include-data-file=imagenes/LedLogin.gif=imagenes/LedLogin.gif --include-data-file=imagenes/logo.png=imagenes/logo.png --include-data-file=imagenes/informacion.png=imagenes/informacion.png --include-data-file=.env=.env --output-dir=build principal.py
 
       - name: Listar archivos de salida
         run: |
