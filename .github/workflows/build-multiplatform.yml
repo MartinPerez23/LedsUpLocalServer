@@ -20,7 +20,6 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          
 
       - name: Build Windows Executable with Nuitka
         run: python -m nuitka --standalone --enable-plugin=tk-inter --accept-downloads --windows-disable-console --windows-icon-from-ico=imagenes/icono.ico --output-dir=build principal.py
@@ -49,7 +48,6 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y gcc
           pip install -r requirements.txt
-    
 
       - name: Build Linux Executable with Nuitka
         run: |
@@ -84,7 +82,7 @@ jobs:
         run: |
           brew install gcc
           pip install -r requirements.txt
-          
+
 
       - name: Build macOS Executable with Nuitka
         run: |
@@ -93,39 +91,46 @@ jobs:
             --enable-plugin=tk-inter \
             --output-dir=build \
             principal.py
+      - name: Listar archivos de salida
+        run: |
+          ls -l build/principal.dist
 
       - name: Renombrar binario
         run: |
-          BIN=$(find build/principal.dist -type f -name 'principal' | head -n 1)
+          BIN=$(find build/principal.dist -type f -executable | head -n 1)
           echo "Archivo encontrado: $BIN"
-          mv $BIN LedsUp-macos
+          if [ -z "$BIN" ]; then
+            echo "No se encontró ejecutable. Build fallido o ruta inesperada."
+            exit 1
+          fi
+          mv "$BIN" LedsUp-linux
 
       - uses: actions/upload-artifact@v4
         with:
           name: ledsup-macos
           path: LedsUp-macos
 
-  release:
-    needs: [ build-windows, build-linux, build-macos ]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
+    release:
+      needs: [ build-windows, build-linux, build-macos ]
+      runs-on: ubuntu-latest
+      steps:
+        - name: Download all artifacts
+          uses: actions/download-artifact@v4
+          with:
+            path: artifacts
 
-      - name: Prepare release files
-        run: |
-          mkdir release
-          find artifacts -type f -name "LedsUp-*" -exec cp {} release/ \;
+        - name: Prepare release files
+          run: |
+            mkdir release
+            find artifacts -type f -name "LedsUp-*" -exec cp {} release/ \;
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: latest
-          name: Última versión compilada
-          draft: false
-          prerelease: false
-          files: release/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+        - name: Create GitHub Release
+          uses: softprops/action-gh-release@v1
+          with:
+            tag_name: latest
+            name: Última versión compilada
+            draft: false
+            prerelease: false
+            files: release/*
+          env:
+            GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
