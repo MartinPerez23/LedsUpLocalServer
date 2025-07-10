@@ -1,20 +1,14 @@
 import os
 import sys
 
-
 def resource_path(relative_path):
-    frozen = getattr(sys, 'frozen', False)
-    meipass = getattr(sys, '_MEIPASS', None)
-
-    print(f"DEBUG resource_path: frozen={frozen}, _MEIPASS={meipass}")
-
-    if frozen and meipass:
-        base_path = meipass
+    if hasattr(sys, 'frozen') or getattr(sys, 'nuitka_compiled', False):
+        base_path = os.path.dirname(sys.executable)
     else:
         base_path = os.path.abspath(".")
 
     full_path = os.path.join(base_path, relative_path)
-    print(f"DEBUG resource_path: full_path={full_path}")
+    print(f"DEBUG resource_path: {full_path}")
     return full_path
 
 
