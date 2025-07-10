@@ -23,7 +23,7 @@ jobs:
           pip install nuitka==2.2.3
 
       - name: Build Windows Executable with Nuitka
-        run: python -m nuitka --standalone --enable-plugin=tk-inter --windows-disable-console --windows-icon-from-ico=imagenes/icono.ico --output-dir=build principal.py
+        run: python -m nuitka --standalone --enable-plugin=tk-inter --assume-yes-for-downloads --windows-disable-console --windows-icon-from-ico=imagenes/icono.ico --output-dir=build principal.py
 
       - name: Renombrar binario
         run: |
@@ -66,7 +66,7 @@ jobs:
             echo "No se encontró ejecutable. Build fallido o ruta inesperada."
             exit 1
           fi
-          mv "$BIN" LedsUp-macos
+          mv "$BIN" LedsUp-linux
 
       - uses: actions/upload-artifact@v4
         with:
