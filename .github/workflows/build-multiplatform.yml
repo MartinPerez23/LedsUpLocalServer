@@ -54,7 +54,10 @@ jobs:
       - name: Prepare release files
         run: |
           mkdir release
-          find artifacts -type f -name "LedsUp.exe" -exec cp {} release/ \;
+          Get-ChildItem -Path artifacts -Filter LedsUp.exe -Recurse | ForEach-Object {
+            Copy-Item $_.FullName -Destination release
+          }
+        shell: powershell
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
