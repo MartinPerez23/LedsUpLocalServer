@@ -1,4 +1,4 @@
-name: Build multiplatform executables
+name: Build multiplatform executables with Nuitka
 
 on:
   push:
@@ -11,35 +11,62 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
+
       - name: Setup Python 3.9
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
+
       - name: Install dependencies
-        run: pip install -r requirements.txt
-      - name: Build Windows Executable
-        run: pyinstaller --noconfirm --clean ledsup.spec
+        run: |
+          pip install -r requirements.txt
+          pip install nuitka
+
+      - name: Build Windows Executable with Nuitka
+        run: |
+          python -m nuitka \
+            --standalone \
+            --enable-plugin=tk-inter \
+            --windows-disable-console \
+            --windows-icon-from-ico=imagenes/icono.ico \
+            --output-dir=build \
+            principal.py
+
       - name: Rename output
-        run: Rename-Item -Path dist/LedsUp.exe -NewName LedsUp-windows.exe
+        run: Rename-Item -Path build\principal.dist\principal.exe -NewName LedsUp-windows.exe
+
       - uses: actions/upload-artifact@v4
         with:
           name: ledsup-windows
-          path: dist/LedsUp-windows.exe
+          path: build/LedsUp-windows.exe
 
   build-linux:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - name: Setup Python 3.9
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
+
       - name: Install dependencies
-        run: pip install -r requirements.txt
-      - name: Build Linux Executable
-        run: pyinstaller --noconfirm --clean ledsup.spec
+        run: |
+          sudo apt-get update && sudo apt-get install -y gcc
+          pip install -r requirements.txt
+          pip install nuitka
+
+      - name: Build Linux Executable with Nuitka
+        run: |
+          python3 -m nuitka \
+            --standalone \
+            --enable-plugin=tk-inter \
+            --output-dir=build \
+            principal.py
+
       - name: Rename output
-        run: mv dist/LedsUp LedsUp-linux
+        run: mv build/principal.dist/principal LedsUp-linux
+
       - uses: actions/upload-artifact@v4
         with:
           name: ledsup-linux
@@ -49,23 +76,36 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
+
       - name: Setup Python 3.9
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
+
       - name: Install dependencies
-        run: pip install -r requirements.txt
-      - name: Build macOS Executable
-        run: pyinstaller --noconfirm --clean ledsup.spec
+        run: |
+          brew install gcc
+          pip install -r requirements.txt
+          pip install nuitka
+
+      - name: Build macOS Executable with Nuitka
+        run: |
+          python3 -m nuitka \
+            --standalone \
+            --enable-plugin=tk-inter \
+            --output-dir=build \
+            principal.py
+
       - name: Rename output
-        run: mv dist/LedsUp LedsUp-macos
+        run: mv build/principal.dist/principal LedsUp-macos
+
       - uses: actions/upload-artifact@v4
         with:
           name: ledsup-macos
           path: LedsUp-macos
 
   release:
-    needs: [build-windows, build-linux, build-macos]
+    needs: [ build-windows, build-linux, build-macos ]
     runs-on: ubuntu-latest
     steps:
       - name: Download all artifacts
@@ -81,7 +121,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: lastest
+          tag_name: latest
           name: Última versión compilada
           draft: false
           prerelease: false
