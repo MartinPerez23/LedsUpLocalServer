@@ -20,6 +20,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
+          pip install nuitka==2.2.3
 
       - name: Build Windows Executable with Nuitka
         run: python -m nuitka --standalone --enable-plugin=tk-inter --accept-downloads --windows-disable-console --windows-icon-from-ico=imagenes/icono.ico --output-dir=build principal.py
@@ -59,10 +60,14 @@ jobs:
 
       - name: Renombrar binario
         run: |
-          BIN=$(find build/principal.dist -type f -executable | head -n 1)
+          BIN=$(find build/principal.dist -type f -name '*.bin' | head -n 1)
           echo "Archivo encontrado: $BIN"
-          mv $BIN LedsUp-linux
-
+          if [ -z "$BIN" ]; then
+            echo "No se encontró ejecutable. Build fallido o ruta inesperada."
+            exit 1
+          fi
+          mv "$BIN" LedsUp-macos
+          
       - uses: actions/upload-artifact@v4
         with:
           name: ledsup-linux
