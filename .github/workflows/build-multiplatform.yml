@@ -17,8 +17,11 @@ jobs:
         with:
           python-version: '3.9'
 
-      - name: Upgrade Nuitka
-        run: pip install -U nuitka
+      - name: Upgrade Nuitka (forzado)
+        run: pip install --force-reinstall --no-cache-dir --upgrade nuitka
+
+      - name: Verificar versión de Nuitka (post-upgrade)
+        run: python -m nuitka --version
 
       - name: Install dependencies
         run: |
