@@ -9,6 +9,7 @@ def resource_path(relative_path):
     else:
         base_path = os.path.abspath(".")
 
+    print(base_path)
     return os.path.join(base_path, relative_path)
 
 
