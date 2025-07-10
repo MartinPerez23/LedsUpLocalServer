@@ -24,7 +24,7 @@ jobs:
       - name: Build Windows Executable (Onefile) with Nuitka
         run: |
           $dll="$env:PythonLocation\python39.dll"
-          python -m nuitka --standalone --onefile --windows-console-mode=disable --enable-plugin=tk-inter --assume-yes-for-downloads --windows-icon-from-ico=imagenes/icono.ico --include-data-file=imagenes/error.png=imagenes/error.png --include-data-file=imagenes/icono.ico=imagenes/icono.ico --include-data-file=imagenes/LedLogin.gif=imagenes/LedLogin.gif --include-data-file=imagenes/logo.png=imagenes/logo.png --include-data-file=imagenes/informacion.png=imagenes/informacion.png --include-data-file=.env=.env --output-dir=build principal.py
+          python -m nuitka --standalone --onefile --enable-plugin=tk-inter --assume-yes-for-downloads --windows-icon-from-ico=imagenes/icono.ico --include-data-file=imagenes/error.png=imagenes/error.png --include-data-file=imagenes/icono.ico=imagenes/icono.ico --include-data-file=imagenes/LedLogin.gif=imagenes/LedLogin.gif --include-data-file=imagenes/logo.png=imagenes/logo.png --include-data-file=imagenes/informacion.png=imagenes/informacion.png --include-data-file=.env=.env --output-dir=build principal.py
 
       - name: Renombrar binario
         run: |
