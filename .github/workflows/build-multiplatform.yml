@@ -1,4 +1,4 @@
-name: Build multiplatform executables
+name: Build Windows executable with Nuitka
 
 on:
   push:
@@ -11,62 +11,40 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
+
       - name: Setup Python 3.9
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
+
       - name: Install dependencies
-        run: pip install -r requirements.txt
-      - name: Build Windows Executable
-        run: pyinstaller --noconfirm --clean ledsup.spec
-      - name: Rename output
-        run: Rename-Item -Path dist/LedsUp.exe -NewName LedsUp-windows.exe
+        run: |
+          pip install -r requirements.txt          
+
+      - name: Build Windows Executable (Onefile) with Nuitka
+        run: |
+          $dll="$env:PythonLocation\python39.dll"
+          python -m nuitka --standalone --onefile --windows-console-mode=disable --enable-plugin=tk-inter --assume-yes-for-downloads --windows-icon-from-ico=imagenes/icono.ico --include-package=websockets --include-package=customtkinter --include-package=stupidArtnet --include-package=PIL --include-package=dotenv --include-package=requests --include-data-file=imagenes/error.png=imagenes/error.png --include-data-file=imagenes/icono.ico=imagenes/icono.ico --include-data-file=imagenes/LedLogin.gif=imagenes/LedLogin.gif --include-data-file=imagenes/logo.png=imagenes/logo.png --include-data-file=imagenes/informacion.png=imagenes/informacion.png --include-data-file=.env=.env --output-dir=build principal.py
+
+      - name: Renombrar binario a LedsUp.exe
+        run: |
+          $BIN = Get-ChildItem -Path build -Filter *.exe | Select-Object -First 1
+
+          if ($BIN) {
+            Rename-Item -Path $BIN.FullName -NewName LedsUp.exe
+          } else {
+            Write-Error "No se encontró ningún ejecutable .exe en build"
+            exit 1
+          }
+
       - uses: actions/upload-artifact@v4
         with:
           name: ledsup-windows
-          path: dist/LedsUp-windows.exe
-
-  build-linux:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Setup Python 3.9
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.9'
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-      - name: Build Linux Executable
-        run: pyinstaller --noconfirm --clean ledsup.spec
-      - name: Rename output
-        run: mv dist/LedsUp LedsUp-linux
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ledsup-linux
-          path: LedsUp-linux
-
-  build-macos:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Setup Python 3.9
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.9'
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-      - name: Build macOS Executable
-        run: pyinstaller --noconfirm --clean ledsup.spec
-      - name: Rename output
-        run: mv dist/LedsUp LedsUp-macos
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ledsup-macos
-          path: LedsUp-macos
+          path: build/LedsUp.exe
 
   release:
-    needs: [build-windows, build-linux, build-macos]
-    runs-on: ubuntu-latest
+    needs: [ build-windows ]
+    runs-on: windows-latest
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -76,12 +54,15 @@ jobs:
       - name: Prepare release files
         run: |
           mkdir release
-          find artifacts -type f -name "LedsUp-*" -exec cp {} release/ \;
+          Get-ChildItem -Path artifacts -Filter LedsUp.exe -Recurse | ForEach-Object {
+            Copy-Item $_.FullName -Destination release
+          }
+        shell: powershell
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: lastest
+          tag_name: v1.0
           name: Última versión compilada
           draft: false
           prerelease: false

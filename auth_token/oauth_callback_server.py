@@ -16,6 +16,7 @@ class OAuthCallbackHandler(http.server.BaseHTTPRequestHandler):
             self.send_response(302)
             self.send_header('Location', 'https://127.0.0.1:8000/ledsup/autenticado/')
             self.end_headers()
+            self.wfile.write(b"<html><body>Redirigiendo...</body></html>")
         else:
             self.send_response(404)
             self.end_headers()
