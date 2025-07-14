@@ -10,7 +10,10 @@ class TokenManager:
     @staticmethod
     def get_token():
         if time.time() > globales.AUTH_TOKEN_EXPIRY:
-            TokenManager.refresh_token()
+            try:
+                TokenManager.refresh_token()
+            except Exception as e:
+                raise Exception('Error al obtener el token', e)
         return globales.AUTH_TOKEN_USUARIO
 
     @staticmethod
@@ -25,8 +28,11 @@ class TokenManager:
             "client_secret": os.environ.get('SECRET'),
         }
         response = requests.post(os.environ.get('TOKEN_URL'), data=data, headers=headers)
-        response.raise_for_status()
-        TokenManager.save_response(response)
+        try:
+            response.raise_for_status()
+            TokenManager.save_response(response)
+        except requests.exceptions.HTTPError as e:
+            raise Exception('Error al refrescar el token', e)
 
     @staticmethod
     def save_response(response):
@@ -50,5 +56,8 @@ class TokenManager:
             "code_verifier": code_verifier,
         }
         response = requests.post(os.environ.get('TOKEN_URL'), data=data, headers=headers)
-        response.raise_for_status()
-        TokenManager.save_response(response)
+        try:
+            response.raise_for_status()
+            TokenManager.save_response(response)
+        except requests.exceptions.HTTPError as e:
+            raise Exception('Error al obtener el token con codigo', e)

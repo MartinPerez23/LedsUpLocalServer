@@ -25,20 +25,19 @@ ssl_context = ssl.create_default_context()
 
 
 async def escuchar_websocket(app_view, stop_event: asyncio.Event):
-    token = TokenManager.get_token()
-    header = [
-        ("Origin", os.environ.get('ORIGIN')),
-        ("Authorization", f"Bearer {token}")
-    ]
-    websocket = None
     try:
-        async with websockets.connect(os.environ.get('WS_URI'), extra_headers=header, ssl=ssl_context) as ws:
-            websocket = ws
+        token = TokenManager.get_token()
+        header = [
+            ("Origin", os.environ.get('ORIGIN')),
+            ("Authorization", f"Bearer {token}")
+        ]
+
+        async with websockets.connect(os.environ.get('WS_URI'), extra_headers=header, ssl=ssl_context) as websocket:
             print("conectado a websocket")
             app_view.set_status_entry("Conectado", "green")
             app_view.ConnectButton.configure(text="Desconectar", state="normal")
 
-            asyncio.create_task(enviar_heartbeat(ws, stop_event, app_view))
+            asyncio.create_task(enviar_heartbeat(websocket, stop_event, app_view))
 
             while not stop_event.is_set():
                 try:
@@ -47,28 +46,30 @@ async def escuchar_websocket(app_view, stop_event: asyncio.Event):
                     comando = data.get('data')
 
                     if comando:
-                        print("mensaje recibido")
+                        print("Mensaje Recibido")
                         comando_queue.put(comando)
                         await websocket.send(json.dumps({"estado": "ok"}))
                     else:
                         PopupMensaje(app_view, "Se recibió un comando inesperado desde la web, vuelva a intentarlo",
                                      True)
-                        app_view.reportar_error("Formato inesperado:" + str(data), 'Al recibir el comando desde la web')
+                        app_view.reportar_error('Al recibir comando inesperando desde la web',
+                                                "Formato inesperado:" + str(data))
 
                 except asyncio.TimeoutError:
-                    print("No se recibio ninguna respuesta")
+                    print("Esperando mensaje")
                     continue
 
     except Exception as e:
-        print("Al recibir el comando desde la web: ", e)
+        print("Error en websocket", e)
         traceback.print_exc()
 
-        app_view.reportar_error('Al recibir el comando desde la web', traceback.print_exc())
+        app_view.reportar_error("Error en websocket", traceback.format_exc())
         app_view.set_status_entry("Desconectado", "red")
         app_view.ConnectButton.configure(text="Conectar", state="normal")
     finally:
         if websocket:
             await websocket.close()
+            print("websocket desconectado")
 
 
 def procesar_comandos_thread(controlador: ControladorLEDs, app_view):
@@ -78,17 +79,19 @@ def procesar_comandos_thread(controlador: ControladorLEDs, app_view):
             break
         controlador.procesar_comando(comando, app_view)
 
+
 async def enviar_heartbeat(ws, stop_event, app_view):
     try:
         while not stop_event.is_set():
             await asyncio.sleep(10)  # cada 10 segundos
             await ws.send(json.dumps({"type": "ping"}))
     except Exception as e:
-        print("Al enviar heartbeat:", e)
+        print("Error al enviar heartbeat:", e)
         traceback.print_exc()
-        app_view.reportar_error("Al enviar heartbeat", traceback.format_exc())
+        app_view.reportar_error("Error al enviar heartbeat", traceback.format_exc())
         app_view.set_status_entry("Desconectado", "red")
         app_view.ConnectButton.configure(text="Conectar", state="normal")
+
 
 class AppView(ctk.CTk):
     def __init__(self, *args, **kwargs):

@@ -4,6 +4,7 @@ import os
 import random
 import secrets
 import threading
+import traceback
 import webbrowser
 
 import customtkinter as ctk
@@ -13,6 +14,7 @@ from dotenv import load_dotenv
 from auth_token.oauth_callback_server import run_server
 from auth_token.oauth_token_server import TokenManager
 from globales import resource_path
+from vistas.vista_popup_mensaje import PopupMensaje
 
 load_dotenv()
 
@@ -39,13 +41,15 @@ def authentication():
 
     auth_code = run_server()
 
-    TokenManager.get_token_with_code(auth_code, code_verifier)
+    try:
+        TokenManager.get_token_with_code(auth_code, code_verifier)
+    except Exception as e:
+        raise Exception("Error al autentificar", e)
 
 
 class Login(ctk.CTk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.code_verifier = None
         self.title("Server LEDS UP")
         self.iconbitmap(resource_path("imagenes/icono.ico"))
         self.geometry("300x300")
@@ -73,7 +77,15 @@ class Login(ctk.CTk):
         ventana = VentanaEspera(self)
 
         def thread_func():
-            authentication()
+            try:
+                authentication()
+
+            except Exception as e:
+                print("Error al autenticar", e)
+                traceback.print_exc()
+                popup = PopupMensaje(ventana, "Error al autenticar, vuelva a intentarlo más tarde", True)
+                self.wait_window(popup)
+
             ventana.after(0, ventana.destroy)
             self.after(0, self.destroy)
 
