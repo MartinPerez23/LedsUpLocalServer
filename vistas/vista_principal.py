@@ -16,12 +16,13 @@ from controladores.controlador_usuario import ControladorUsuario
 from globales import resource_path
 from modelos.modelo_error import ModeloError
 from vistas.vista_popup_mensaje import PopupMensaje
+from globales import resource_path
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("dark-blue")
 
 comando_queue = queue.Queue()
-ssl_context = ssl.create_default_context()
+ssl_context = ssl._create_unverified_context()
 
 
 async def escuchar_websocket(app_view, stop_event: asyncio.Event):
@@ -48,6 +49,7 @@ async def escuchar_websocket(app_view, stop_event: asyncio.Event):
 
                     if comando:
                         print("mensaje recibido")
+                        print(comando)
                         comando_queue.put(comando)
                         await websocket.send(json.dumps({"estado": "ok"}))
                     else:

@@ -24,7 +24,7 @@ class TokenManager:
             "client_id": os.environ.get('CLIENT_ID'),
             "client_secret": os.environ.get('SECRET'),
         }
-        response = requests.post(os.environ.get('TOKEN_URL'), data=data, headers=headers)
+        response = requests.post(os.environ.get('TOKEN_URL'), data=data, headers=headers, verify=False)
         response.raise_for_status()
         TokenManager.save_response(response)
 
@@ -49,6 +49,6 @@ class TokenManager:
             "client_secret": os.environ.get('SECRET'),
             "code_verifier": code_verifier,
         }
-        response = requests.post(os.environ.get('TOKEN_URL'), data=data, headers=headers)
+        response = requests.post(os.environ.get('TOKEN_URL'), data=data, headers=headers, verify=False)
         response.raise_for_status()
         TokenManager.save_response(response)

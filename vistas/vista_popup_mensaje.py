@@ -1,4 +1,5 @@
 import customtkinter as ctk
+from globales import resource_path
 
 class PopupMensaje(ctk.CTkToplevel):
     def __init__(self, parent, mensaje, is_error):
